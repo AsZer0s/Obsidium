@@ -16,7 +16,8 @@ A **Wallet pull-out deck** (`CardStack`):
   the right** — so several accounts from one service (e.g. four Googles) stay
   distinguishable at a glance. No code shown.
 - **Pull out:** tap a card → it rises to the top in `.detail` mode and reveals
-  the big SF Mono code + countdown ring; the rest collapse to a thin pile below.
+  the big SF Mono code + countdown ring; the rest slide to the **bottom of the
+  screen** as a readable stack — each still showing its name + username.
 - **Put back:** swipe the pulled-out card down to drop it into the deck.
 
 A subtle icon block peeks from each card's top-left (SF Symbol; swap for a
@@ -55,11 +56,13 @@ The icon block sits clipped behind the content in the top-left.
 
 ## Layout — the deck
 
-`CardStack` positions cards in a `ZStack` by computed `y` offsets. Collapsed,
-each `.header` card (height 66) is offset by `stackStep` (54) so it peeks.
-Selecting switches it to `.detail` (height 150) at the top; the others drop into
-a thin pile (`pilePeek` 30) below. A downward `DragGesture` past ~60pt returns
-it; scrolling is disabled while a card is out so the drag isn't intercepted.
+`CardStack` positions cards in a `GeometryReader`/`ZStack` by computed `y`
+offsets (no scroll, so the slide animates smoothly). Collapsed, each `.header`
+card (height 66) is offset by `stackStep` (54) so it peeks. Selecting switches
+it to `.detail` (height 150) at the top; everyone else slides to the **bottom**
+of the screen, stacked with `pilePeek` (52) — wide enough that each card's name
++ username row stays readable, not squeezed. A downward `DragGesture` past ~60pt
+returns the pulled-out card.
 
 ## Interaction
 

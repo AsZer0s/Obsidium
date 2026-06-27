@@ -2,10 +2,11 @@
 //  CardStack.swift
 //  Obsidium
 //
-//  An Apple Wallet–style deck. Collapsed, the cards overlap and each shows only
-//  its name + username. Tapping a card pulls it out to reveal the engraved code
-//  while the rest collapse into a thin pile below it; swiping the pulled-out
-//  card down drops it back into the deck. Delete is a long-press context menu.
+//  An Apple Wallet–style deck. Collapsed, the cards overlap and each shows its
+//  name + username. Tap a card and it rises to the top to reveal the code while
+//  the rest slide to the BOTTOM of the screen as a still-readable stack (each
+//  keeps showing its name + username). Swipe the pulled-out card down to drop
+//  it back. Delete is a long-press context menu.
 //
 
 import SwiftUI
@@ -23,13 +24,16 @@ struct CardStack: View {
     private let headerHeight: CGFloat = 66    // collapsed card height (single row)
     private let detailHeight: CGFloat = 150   // pulled-out card height
     private let stackStep: CGFloat = 54       // visible sliver per stacked card
-    private let pilePeek: CGFloat = 30        // sliver per card in the bottom pile
-    private let gap: CGFloat = 14             // space below the pulled-out card
+    private let pilePeek: CGFloat = 52        // sliver per bottom-pile card — wide
+                                              // enough to keep the text row readable
+    private let gap: CGFloat = 16             // min space below the pulled-out card
+    private let topInset: CGFloat = 8
+    private let bottomInset: CGFloat = 12
 
     private var spring: Animation { .spring(response: 0.5, dampingFraction: 0.84) }
 
     var body: some View {
-        ScrollView {
+        GeometryReader { geo in
             ZStack(alignment: .top) {
                 ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
                     let isSelected = selectedID == account.id
@@ -40,7 +44,8 @@ struct CardStack: View {
                         height: isSelected ? detailHeight : headerHeight,
                         onTap: { select(account.id) }
                     )
-                    .offset(y: yOffset(for: index) + (isSelected ? dragOffset : 0))
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .offset(y: yOffset(for: index, in: geo.size.height) + (isSelected ? dragOffset : 0))
                     .zIndex(isSelected ? 1000 : Double(index))
                     .gesture(isSelected ? dragToDismiss : nil)
                     .contextMenu {
@@ -52,14 +57,9 @@ struct CardStack: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: contentHeight, alignment: .top)
-            .padding(.horizontal, Theme.Spacing.lg)
-            .padding(.top, Theme.Spacing.sm)
-            .padding(.bottom, Theme.Spacing.xl)
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
             .animation(spring, value: selectedID)
         }
-        .scrollIndicators(.hidden)
-        .scrollDisabled(selectedID != nil)   // let the drag dismiss, not scroll
     }
 
     // MARK: Layout math
@@ -69,23 +69,19 @@ struct CardStack: View {
         return accounts.firstIndex { $0.id == id }
     }
 
-    private func yOffset(for index: Int) -> CGFloat {
+    private func yOffset(for index: Int, in height: CGFloat) -> CGFloat {
         guard let selected = selectedIndex else {
-            return CGFloat(index) * stackStep          // full deck
+            return topInset + CGFloat(index) * stackStep      // collapsed deck
         }
-        if index == selected { return 0 }              // pulled out to the top
-        let j = index < selected ? index : index - 1   // position in the bottom pile
-        return detailHeight + gap + CGFloat(j) * pilePeek
-    }
+        if index == selected { return topInset }              // pulled out to the top
 
-    private var contentHeight: CGFloat {
-        guard !accounts.isEmpty else { return 0 }
-        if selectedIndex != nil {
-            let others = accounts.count - 1
-            guard others > 0 else { return detailHeight }
-            return detailHeight + gap + CGFloat(others - 1) * pilePeek + headerHeight
-        }
-        return CGFloat(accounts.count - 1) * stackStep + headerHeight
+        // Everyone else stacks at the bottom of the screen, each still peeking
+        // `pilePeek` so the name + username row stays visible.
+        let j = index < selected ? index : index - 1
+        let others = accounts.count - 1
+        let pileHeight = CGFloat(max(0, others - 1)) * pilePeek + headerHeight
+        let pileTop = max(topInset + detailHeight + gap, height - bottomInset - pileHeight)
+        return pileTop + CGFloat(j) * pilePeek
     }
 
     // MARK: Interaction
