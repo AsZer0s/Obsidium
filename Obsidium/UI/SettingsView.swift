@@ -136,10 +136,9 @@ struct SettingsView: View {
         }
     }
 
-    private func handleImport(_ result: Result<[URL], Error>) {
+    private func handleImport(_ result: Result<URL, Error>) {
         switch result {
-        case .success(let urls):
-            guard let url = urls.first else { return }
+        case .success(let url):
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             guard let data = try? Data(contentsOf: url) else {
