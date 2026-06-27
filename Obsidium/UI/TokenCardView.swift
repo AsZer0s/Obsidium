@@ -2,9 +2,10 @@
 //  TokenCardView.swift
 //  Obsidium
 //
-//  A token rendered as a cryptographic "security card" where the code is the
-//  only hero element. Issuer/label are demoted to metadata; the countdown is
-//  a subtle chip + a thin draining bar. Tap to copy (with haptic feedback).
+//  A token as a cryptographic "security card" where the code is the ONLY hero.
+//  Issuer/label are quiet metadata; the only countdown is a small ring. On each
+//  refresh the code resolves in with a subtle blur pulse (no utility-style bar).
+//  Tap to copy (with haptic feedback).
 //
 
 import SwiftUI
@@ -16,11 +17,12 @@ struct TokenCardView: View {
     let now: Date
 
     @State private var didCopy = false
+    @State private var refreshBlur: CGFloat = 0
 
     private var code: String { TOTPGenerator.code(for: account, at: now) ?? "------" }
     private var hasCode: Bool { code != "------" }
 
-    /// Group the code into two halves for readability, e.g. "792 874".
+    /// Group the code into two halves for readability, e.g. "652 087".
     private var formattedCode: String {
         guard hasCode, code.count == 6 || code.count == 8 else {
             return hasCode ? code : "— — —"
@@ -31,63 +33,51 @@ struct TokenCardView: View {
 
     private var secondsRemaining: Int { TOTPGenerator.secondsRemaining(period: account.period, at: now) }
     private var progress: Double { TOTPGenerator.progress(period: account.period, at: now) }
-    private var isExpiring: Bool { secondsRemaining <= 5 }
+    private var showLabel: Bool { !account.label.isEmpty && account.displayTitle != account.label }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            // Header — issuer (metadata) + demoted countdown.
-            HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            // Header — issuer (metadata) + the lone countdown ring.
+            HStack(alignment: .center, spacing: Theme.Spacing.sm) {
                 Text(account.displayTitle)
-                    .font(.footnote.weight(.medium))
+                    .font(Theme.Typography.issuer)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Spacer(minLength: Theme.Spacing.sm)
-                CountdownChip(progress: progress, secondsRemaining: secondsRemaining)
+                CountdownRing(progress: progress, secondsRemaining: secondsRemaining)
             }
 
-            // Account label — demoted further; only when it adds information.
-            if !account.label.isEmpty, account.displayTitle != account.label {
+            // Account label — quieter still; only when it adds information.
+            if showLabel {
                 Text(account.label)
-                    .font(.caption)
+                    .font(Theme.Typography.label)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
             }
 
-            // Hero — the code. Everything else exists to support this line.
+            // Hero — the code. Pulled well clear of the metadata above it.
             Text(formattedCode)
-                .font(.system(size: 42, weight: .semibold, design: .monospaced))
-                .tracking(6)
+                .font(Theme.Typography.code)
+                .tracking(8)
                 .foregroundStyle(didCopy ? Theme.accent : .primary)
                 .contentTransition(.numericText())
                 .animation(.snappy, value: code)
+                .blur(radius: refreshBlur)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
-                .padding(.top, Theme.Spacing.sm)
+                .padding(.top, Theme.Spacing.lg)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .onChange(of: code) { _, _ in pulseRefresh() }
         }
-        .padding(Theme.Spacing.lg)
-        .background(cardBackground)
-        .overlay(alignment: .bottom) {
-            CountdownBar(progress: progress, isExpiring: isExpiring)
-                .padding(.horizontal, Theme.Spacing.lg)
-                .padding(.bottom, Theme.Spacing.md)
-        }
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, Theme.Spacing.xl)
+        .glassCard()
         .overlay { copiedBadge }
         .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .onTapGesture(perform: copyCode)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(account.displayTitle), code \(code)")
         .accessibilityHint("Double-tap to copy")
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-            .fill(.ultraThinMaterial)
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                    .stroke(Theme.cardStroke, lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
     }
 
     @ViewBuilder private var copiedBadge: some View {
@@ -101,6 +91,13 @@ struct TokenCardView: View {
                 .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
                 .transition(.scale(scale: 0.85).combined(with: .opacity))
         }
+    }
+
+    /// Subtle "resolve into focus" shimmer when the code rolls over — the
+    /// Apple-like replacement for a progress bar.
+    private func pulseRefresh() {
+        refreshBlur = 5
+        withAnimation(.easeOut(duration: 0.5)) { refreshBlur = 0 }
     }
 
     private func copyCode() {

@@ -2,26 +2,38 @@
 //  Theme.swift
 //  Obsidium
 //
-//  A small, deliberately minimal design-token layer so the UI stays
-//  consistent. Obsidium's visual language: dark-first, minimal chrome,
-//  security-grade spacing, monospaced digits as the identity.
+//  Obsidium Design System v1. A deliberately small token layer — spacing,
+//  type scale, color, and one card style — so every surface stays consistent.
+//  Visual language: dark-first, minimal chrome, security-grade air, and
+//  monospaced digits as the identity. The code is always the only hero.
 //
 
 import SwiftUI
 
 enum Theme {
 
-    /// 4 / 8 / 12 / 16 / 24 spacing scale.
+    /// 4 / 8 / 12 / 16 / 24 / 32 spacing scale.
     enum Spacing {
         static let xs: CGFloat = 4
         static let sm: CGFloat = 8
         static let md: CGFloat = 12
         static let lg: CGFloat = 16
         static let xl: CGFloat = 24
+        static let xxl: CGFloat = 32
     }
 
     enum Radius {
-        static let card: CGFloat = 20
+        static let card: CGFloat = 22
+    }
+
+    /// Type scale. The code dominates; everything else reads as metadata.
+    enum Typography {
+        /// The hero — the only thing you should notice at a glance.
+        static let code = Font.system(size: 48, weight: .semibold, design: .monospaced)
+        /// Service name — quiet metadata.
+        static let issuer = Font.caption
+        /// Account label — quieter still.
+        static let label = Font.caption2
     }
 
     // MARK: Dark security palette
@@ -44,4 +56,22 @@ enum Theme {
         startPoint: .top,
         endPoint: .bottom
     )
+}
+
+// MARK: - Card style
+
+extension View {
+    /// The Obsidium glass card: translucent material, hairline border, soft
+    /// float. The single reusable surface treatment in the design system.
+    func glassCard(cornerRadius: CGFloat = Theme.Radius.card) -> some View {
+        background(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(Theme.cardStroke, lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.28), radius: 10, y: 5)
+        )
+    }
 }
