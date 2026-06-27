@@ -1,0 +1,103 @@
+name: iOS Build
+
+# Build (Release), run unit tests, and produce an unsigned .ipa.
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-test-ipa:
+    name: Build, Test & Package IPA
+    runs-on: macos-latest
+
+    env:
+      PROJECT: Obsidium.xcodeproj
+      SCHEME: Obsidium
+      CONFIGURATION: Release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Prepare log directory
+        run: mkdir -p build-logs
+
+      - name: Show environment
+        run: |
+          xcodebuild -version | tee build-logs/environment.log
+          xcodebuild -list -project "$PROJECT" | tee -a build-logs/environment.log
+
+      # Pick whatever iPhone simulator the runner's Xcode actually ships with,
+      # so we never hard-code a device name that may not exist.
+      - name: Resolve a simulator
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j \
+            | jq -r '[.devices[][] | select(.name | test("iPhone"))][0].udid')
+          echo "Using simulator UDID: $UDID"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      - name: Run unit tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee build-logs/test.log
+
+      - name: Archive (Release, unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/Obsidium.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | tee build-logs/archive.log
+
+      # `-exportArchive` insists on a signing identity, so for an unsigned build
+      # we package the .app directly: a Payload/ folder zipped as .ipa.
+      - name: Package unsigned IPA
+        run: |
+          APP_PATH=$(find build/Obsidium.xcarchive/Products/Applications \
+            -maxdepth 1 -name "*.app" | head -1)
+          echo "Packaging: $APP_PATH"
+          mkdir -p build/Payload
+          cp -R "$APP_PATH" build/Payload/
+          (cd build && zip -qry Obsidium-unsigned.ipa Payload)
+          ls -lh build/Obsidium-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Obsidium-unsigned-ipa
+          path: build/Obsidium-unsigned.ipa
+          if-no-files-found: error
+
+      - name: Upload build logs
+        if: always()   # keep logs even when an earlier step fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: build-logs/
+          if-no-files-found: warn

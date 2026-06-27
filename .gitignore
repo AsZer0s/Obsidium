@@ -1,0 +1,47 @@
+# ──────────────────────────────────────────────────────────────
+# macOS
+# ──────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# ──────────────────────────────────────────────────────────────
+# Xcode — user & build artifacts
+# ──────────────────────────────────────────────────────────────
+## User settings
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+
+## Build products / intermediates
+build/
+DerivedData/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.xcarchive
+
+## Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+Package.resolved
+
+## Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# ──────────────────────────────────────────────────────────────
+# XcodeGen — the .xcodeproj is generated from project.yml
+# Run `xcodegen generate` locally to (re)create it.
+# ──────────────────────────────────────────────────────────────
+*.xcodeproj
+
+# ──────────────────────────────────────────────────────────────
+# Misc
+# ──────────────────────────────────────────────────────────────
+*.log
+*~
