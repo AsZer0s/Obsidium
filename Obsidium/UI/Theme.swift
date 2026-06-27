@@ -2,10 +2,10 @@
 //  Theme.swift
 //  Obsidium
 //
-//  Obsidium Design System v1. A deliberately small token layer — spacing,
-//  type scale, color, and one card style — so every surface stays consistent.
-//  Visual language: dark-first, minimal chrome, security-grade air, and
-//  monospaced digits as the identity. The code is always the only hero.
+//  Obsidium Design System v1 — obsidian edition. A small token layer so every
+//  surface stays consistent. Visual language: polished volcanic glass, a single
+//  spectral cut-edge, security-grade air, and an engraved monospaced code as the
+//  identity. The code is always the only hero.
 //
 
 import SwiftUI
@@ -23,55 +23,68 @@ enum Theme {
     }
 
     enum Radius {
-        static let card: CGFloat = 22
+        static let card: CGFloat = 18
+        static let chamfer: CGFloat = 24
     }
 
-    /// Type scale. The code dominates; everything else reads as metadata.
+    /// Type scale. The code dominates; the rest reads as the artifact's label.
     enum Typography {
-        /// The hero — the only thing you should notice at a glance.
-        static let code = Font.system(size: 48, weight: .semibold, design: .monospaced)
-        /// Service name — quiet metadata.
-        static let issuer = Font.caption
-        /// Account label — quieter still.
-        static let label = Font.caption2
+        /// The hero — engraved into the glass.
+        static let code = Font.system(size: 46, weight: .medium, design: .monospaced)
+        /// Service name — a small serif nameplate.
+        static let issuer = Font.system(.footnote, design: .serif).weight(.medium)
+        /// Account handle — the raw machine string.
+        static let label = Font.system(.caption2, design: .monospaced)
     }
 
-    // MARK: Dark security palette
+    // MARK: Obsidian palette
 
-    /// Calm, desaturated mint — reads as "secure" without shouting.
-    static let accent = Color(red: 0.40, green: 0.82, blue: 0.70)
+    /// Deepest background — the void the slabs float in.
+    static let ink = Color(red: 0.02, green: 0.02, blue: 0.03)
 
-    /// Soft coral for the expiring state (kinder than pure red on dark).
-    static let warning = Color(red: 0.96, green: 0.50, blue: 0.45)
+    /// Polished-stone surface gradient (light catches the top-left).
+    static let slab = LinearGradient(
+        colors: [
+            Color(red: 0.086, green: 0.090, blue: 0.110),  // #16171C
+            Color(red: 0.039, green: 0.043, blue: 0.055),  // #0A0B0E
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
 
-    /// Hairline border for glass cards.
-    static let cardStroke = Color.white.opacity(0.08)
+    /// Spectral sheen that traces the cut facet — obsidian's rainbow edge.
+    static let sheen = LinearGradient(
+        colors: [
+            Color(red: 0.49, green: 0.55, blue: 1.00),     // cool violet
+            Color(red: 0.36, green: 0.88, blue: 0.84),     // cyan
+        ],
+        startPoint: .leading,
+        endPoint: .trailing
+    )
 
-    /// App background — near-black obsidian gradient with a faint cool tint.
+    /// Engraved code fill — polished white cooling toward the base.
+    static let codeFill = LinearGradient(
+        colors: [Color.white, Color(red: 0.79, green: 0.83, blue: 0.90)],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+
+    /// Glacial spectral accent (copy flash, actions, fresh countdown).
+    static let accent = Color(red: 0.48, green: 0.80, blue: 0.94)
+
+    /// Ember — the countdown warming as the step cools to expiry.
+    static let warning = Color(red: 0.91, green: 0.69, blue: 0.35)
+
+    /// Hairline rim for slabs and chips.
+    static let cardStroke = Color.white.opacity(0.07)
+
+    /// App background — deep obsidian void.
     static let background = LinearGradient(
         colors: [
-            Color(red: 0.07, green: 0.075, blue: 0.09),
-            Color(red: 0.03, green: 0.03, blue: 0.045),
+            Color(red: 0.039, green: 0.041, blue: 0.051),
+            Color(red: 0.016, green: 0.016, blue: 0.024),
         ],
         startPoint: .top,
         endPoint: .bottom
     )
-}
-
-// MARK: - Card style
-
-extension View {
-    /// The Obsidium glass card: translucent material, hairline border, soft
-    /// float. The single reusable surface treatment in the design system.
-    func glassCard(cornerRadius: CGFloat = Theme.Radius.card) -> some View {
-        background(
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .stroke(Theme.cardStroke, lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.28), radius: 10, y: 5)
-        )
-    }
 }

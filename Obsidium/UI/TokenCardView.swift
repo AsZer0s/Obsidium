@@ -2,10 +2,10 @@
 //  TokenCardView.swift
 //  Obsidium
 //
-//  A token as a cryptographic "security card" where the code is the ONLY hero.
-//  Issuer/label are quiet metadata; the only countdown is a small ring. On each
-//  refresh the code resolves in with a subtle blur pulse (no utility-style bar).
-//  Tap to copy (with haptic feedback).
+//  A token as a slab of cut obsidian. The code is engraved into the polished
+//  surface (the only hero); the issuer is a small serif nameplate and the
+//  account a dim machine handle. A single spectral light traces the cut corner.
+//  On each rollover the code re-etches with a brief sharpen. Tap to copy.
 //
 
 import SwiftUI
@@ -37,29 +37,30 @@ struct TokenCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            // Header — issuer (metadata) + the lone countdown ring.
+            // Nameplate row — serif issuer + the lone countdown ring.
             HStack(alignment: .center, spacing: Theme.Spacing.sm) {
                 Text(account.displayTitle)
                     .font(Theme.Typography.issuer)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.72))
                     .lineLimit(1)
                 Spacer(minLength: Theme.Spacing.sm)
                 CountdownRing(progress: progress, secondsRemaining: secondsRemaining)
             }
 
-            // Account label — quieter still; only when it adds information.
+            // Machine handle — quiet, monospaced; only when it adds information.
             if showLabel {
                 Text(account.label)
                     .font(Theme.Typography.label)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.white.opacity(0.42))
                     .lineLimit(1)
             }
 
-            // Hero — the code. Pulled well clear of the metadata above it.
+            // Hero — the code, engraved into the slab.
             Text(formattedCode)
                 .font(Theme.Typography.code)
-                .tracking(8)
-                .foregroundStyle(didCopy ? Theme.accent : .primary)
+                .tracking(6)
+                .foregroundStyle(didCopy ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Theme.codeFill))
+                .shadow(color: .black.opacity(0.55), radius: 0, y: 1)   // emboss: carved into glass
                 .contentTransition(.numericText())
                 .animation(.snappy, value: code)
                 .blur(radius: refreshBlur)
@@ -71,13 +72,24 @@ struct TokenCardView: View {
         }
         .padding(.horizontal, Theme.Spacing.lg)
         .padding(.vertical, Theme.Spacing.xl)
-        .glassCard()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(slab)
         .overlay { copiedBadge }
-        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .contentShape(ObsidianSlab())
         .onTapGesture(perform: copyCode)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(account.displayTitle), code \(code)")
         .accessibilityHint("Double-tap to copy")
+    }
+
+    /// The cut-obsidian surface: polished gradient, hairline rim, and the
+    /// spectral light catching the cut corner.
+    private var slab: some View {
+        ObsidianSlab()
+            .fill(Theme.slab)
+            .overlay(ObsidianSlab().stroke(Theme.cardStroke, lineWidth: 1))
+            .overlay(ObsidianFacet().stroke(Theme.sheen, lineWidth: 1.5))
+            .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
     }
 
     @ViewBuilder private var copiedBadge: some View {
@@ -93,8 +105,7 @@ struct TokenCardView: View {
         }
     }
 
-    /// Subtle "resolve into focus" shimmer when the code rolls over — the
-    /// Apple-like replacement for a progress bar.
+    /// Brief "re-etch into focus" when the code rolls over.
     private func pulseRefresh() {
         refreshBlur = 5
         withAnimation(.easeOut(duration: 0.5)) { refreshBlur = 0 }
