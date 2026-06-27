@@ -16,6 +16,7 @@ struct ObsidiumApp: App {
         WindowGroup {
             TokenListView()
                 .environment(store)
+                .preferredColorScheme(.dark)   // Obsidium is dark-first
                 .onAppear { store.load() }
         }
     }

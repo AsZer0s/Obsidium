@@ -47,11 +47,12 @@ Obsidium/
 │   ├── OTPAuthParser.swift    # otpauth:// -> Account
 │   └── QRScannerView.swift    # AVFoundation camera scanner
 └── UI/
-    ├── TokenListView.swift    # main screen
-    ├── TokenRowView.swift     # one token row
+    ├── Theme.swift            # design tokens: spacing, radii, dark palette
+    ├── TokenListView.swift    # main screen (dark, card list, empty state)
+    ├── TokenCardView.swift    # one token as a "security card" (code = hero)
     ├── ScannerScreen.swift    # scan sheet + permission handling
     └── Components/
-        └── CountdownRing.swift
+        └── CountdownRing.swift # demoted ring + chip + ambient bar
 ObsidiumTests/                 # Swift Testing unit tests
 project.yml                    # XcodeGen project spec
 ExportOptions.plist            # for a future *signed* export (see CI notes)

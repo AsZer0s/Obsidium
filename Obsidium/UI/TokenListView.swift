@@ -2,8 +2,8 @@
 //  TokenListView.swift
 //  Obsidium
 //
-//  The app's only main screen: a live list of tokens with a countdown,
-//  swipe-to-delete, an empty state, and a + button to scan a new code.
+//  The app's only main screen: a dark, card-based list of tokens with a live
+//  countdown, swipe-to-delete, a designed empty state, and a + button to scan.
 //
 
 import SwiftUI
@@ -14,12 +14,9 @@ struct TokenListView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if store.accounts.isEmpty {
-                    emptyState
-                } else {
-                    tokenList
-                }
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                content
             }
             .navigationTitle("Obsidium")
             .toolbar {
@@ -28,7 +25,9 @@ struct TokenListView: View {
                         isScannerPresented = true
                     } label: {
                         Image(systemName: "plus")
+                            .font(.body.weight(.semibold))
                     }
+                    .tint(Theme.accent)
                     .accessibilityLabel("Add token")
                 }
             }
@@ -38,26 +37,81 @@ struct TokenListView: View {
         }
     }
 
-    private var tokenList: some View {
-        // One ticking clock drives every row so codes and rings stay in sync.
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            List {
-                ForEach(store.accounts) { account in
-                    TokenRowView(account: account, now: context.date)
-                }
-                .onDelete { store.delete(at: $0) }
-            }
+    @ViewBuilder
+    private var content: some View {
+        if store.accounts.isEmpty {
+            EmptyStateView { isScannerPresented = true }
+        } else {
+            tokenList
         }
     }
 
-    private var emptyState: some View {
-        ContentUnavailableView {
-            Label("No Tokens Yet", systemImage: "lock.shield")
-        } description: {
-            Text("Tap + to scan a 2FA QR code.")
-        } actions: {
-            Button("Scan QR Code") { isScannerPresented = true }
-                .buttonStyle(.borderedProminent)
+    private var tokenList: some View {
+        // One ticking clock drives every card so codes and rings stay in sync.
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            List {
+                ForEach(store.accounts) { account in
+                    TokenCardView(account: account, now: context.date)
+                        .listRowInsets(EdgeInsets(
+                            top: Theme.Spacing.sm - 2, leading: Theme.Spacing.lg,
+                            bottom: Theme.Spacing.sm - 2, trailing: Theme.Spacing.lg
+                        ))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                store.delete(account)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                }
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .scrollIndicators(.hidden)
         }
+    }
+}
+
+/// Designed empty state — a calm prompt to add the first token.
+private struct EmptyStateView: View {
+    let onScan: () -> Void
+
+    var body: some View {
+        VStack(spacing: Theme.Spacing.lg) {
+            ZStack {
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .overlay(Circle().stroke(Theme.cardStroke, lineWidth: 1))
+                    .frame(width: 88, height: 88)
+                Image(systemName: "lock.shield")
+                    .font(.system(size: 34, weight: .light))
+                    .foregroundStyle(Theme.accent)
+            }
+
+            VStack(spacing: Theme.Spacing.sm) {
+                Text("No Tokens Yet")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text("Scan a 2FA QR code to add your first secure token.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Theme.Spacing.xl)
+            }
+
+            Button(action: onScan) {
+                Label("Scan QR Code", systemImage: "qrcode.viewfinder")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, Theme.Spacing.sm)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.accent)
+            .controlSize(.large)
+            .padding(.top, Theme.Spacing.sm)
+        }
+        .padding(Theme.Spacing.xl)
     }
 }
