@@ -13,13 +13,17 @@ import SwiftUI
 struct TokenListView: View {
     @Environment(VaultStore.self) private var store
     @Environment(ToastCenter.self) private var toast
+    @Environment(\.scenePhase) private var scenePhase
 
+    @AppStorage("appLockEnabled") private var appLockEnabled = false
     @AppStorage("requireBiometricsForSensitiveActions")
     private var requireBiometrics = false
 
     @State private var isScannerPresented = false
     @State private var isSettingsPresented = false
     @State private var editingAccount: Account?
+    @State private var isLocked = false
+    @State private var isAuthenticating = false
 
     var body: some View {
         NavigationStack {
@@ -67,6 +71,29 @@ struct TokenListView: View {
             }
             .animation(.snappy, value: toast.message)
         }
+        .overlay {
+            if isLocked {
+                LockView(action: unlock)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.snappy, value: isLocked)
+        .onAppear {
+            if appLockEnabled {
+                isLocked = true
+                unlock()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .active:
+                if appLockEnabled && isLocked { unlock() }
+            case .background:
+                if appLockEnabled { isLocked = true }
+            default:
+                break
+            }
+        }
     }
 
     @ViewBuilder
@@ -96,6 +123,48 @@ struct TokenListView: View {
             if await Biometrics.authenticate(reason: "Authenticate to delete this token") {
                 await MainActor.run { store.delete(account) }
             }
+        }
+    }
+
+    /// Prompt for biometric unlock; clears the lock on success.
+    private func unlock() {
+        guard !isAuthenticating else { return }
+        isAuthenticating = true
+        Task {
+            let success = await Biometrics.authenticate(reason: "Unlock Obsidium")
+            await MainActor.run {
+                withAnimation(.snappy) { isLocked = !success }
+                isAuthenticating = false
+            }
+        }
+    }
+}
+
+/// Full-screen lock shown when Face ID app lock is on and the app is locked.
+private struct LockView: View {
+    let action: () -> Void
+
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+            VStack(spacing: Theme.Spacing.lg) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 44, weight: .light))
+                    .foregroundStyle(Theme.accent)
+                Text("Obsidium is Locked")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Button(action: action) {
+                    Label("Unlock", systemImage: "faceid")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, Theme.Spacing.sm)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.accent)
+                .controlSize(.large)
+            }
+            .padding(Theme.Spacing.xl)
         }
     }
 }

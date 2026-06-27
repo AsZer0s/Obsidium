@@ -78,11 +78,18 @@ name row readable. A downward `DragGesture` past ~60pt returns the pulled card.
 
 ## Settings & security
 
-A gear button opens **Settings**: a **Face ID** toggle that gates the sensitive
-actions (delete & export), plus **Export Backup** and **Import / Restore**
-(JSON via the system file exporter/importer). Backups are plain-text keys —
-the screen says so. Biometrics use `.deviceOwnerAuthentication` (passcode
-fallback); the toggle persists in `@AppStorage`.
+A gear button opens **Settings**:
+
+- **Lock with Face ID** — gates opening the app (lock on launch + when returning
+  from background; biometric unlock overlay).
+- **Face ID for delete & export** — gates those two actions.
+- **Export Backup / Import Restore** — backups are **password-encrypted**
+  (PBKDF2-HMAC-SHA256 → AES-GCM, `BackupCrypto`); the file is binary, not an
+  encoding. A wrong password fails to decrypt. The password is asked via
+  `PasswordPromptView` (with confirmation on export).
+
+Biometrics use `.deviceOwnerAuthentication` (passcode fallback); toggles persist
+in `@AppStorage`.
 
 ## Principles checklist (apply to any new surface)
 

@@ -8,8 +8,8 @@ Keychain.
 - **Import** accounts by scanning `otpauth://` QR codes
 - **List** of tokens with a live 30s countdown ring; tap a row to copy
 - **Storage** in the iOS Keychain (device-only, never iCloud-synced)
-- **Edit** a token's name, account, or key; **backup** export & import/restore
-- **Face ID** (optional) gating delete & export
+- **Edit** a token's name, account, or key; **encrypted backup** export & restore
+- **Face ID** app lock + optional gating of delete & export
 
 ## Requirements
 
