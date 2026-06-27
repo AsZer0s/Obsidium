@@ -52,10 +52,13 @@ struct TokenCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             nameRow
-            // Fixed gap that keeps the code below the collapsed fold, so it's
-            // clipped away until the card grows.
-            Color.clear.frame(height: Theme.Spacing.xl)
-            codeRow
+            // The code slides up into the card as it opens — it travels with
+            // the expansion rather than being statically revealed by a clip.
+            if mode == .detail {
+                codeRow
+                    .padding(.top, Theme.Spacing.md)
+                    .transition(.move(edge: .bottom))
+            }
         }
         .padding(.horizontal, Theme.Spacing.lg)
         .padding(.vertical, Theme.Spacing.lg)

@@ -21,12 +21,11 @@ struct CardStack: View {
     @State private var selectedID: Account.ID?
     @State private var dragOffset: CGFloat = 0
 
-    // Geometry of the deck. headerHeight stays below the code's y-position
-    // (~62) so the code row is clipped away until a card is pulled out.
-    private let headerHeight: CGFloat = 52    // collapsed: name row only
-    private let detailHeight: CGFloat = 132   // pulled-out: name + code rows
-    private let stackStep: CGFloat = 44        // visible sliver per stacked card
-    private let pilePeek: CGFloat = 46         // sliver per bottom-pile card —
+    // Geometry of the deck.
+    private let headerHeight: CGFloat = 56    // collapsed: name row only
+    private let detailHeight: CGFloat = 130   // pulled-out: name + code (slides in)
+    private let stackStep: CGFloat = 46        // visible sliver per stacked card
+    private let pilePeek: CGFloat = 48         // sliver per bottom-pile card —
                                                // wide enough to keep the name row readable
     private let gap: CGFloat = 16             // min space below the pulled-out card
     private let topInset: CGFloat = 8

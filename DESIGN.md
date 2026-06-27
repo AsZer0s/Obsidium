@@ -57,16 +57,15 @@ The icon block sits clipped behind the content in the top-left.
 ## Layout — the deck
 
 `CardStack` positions cards in a `GeometryReader`/`ZStack` by computed `y`
-offsets (no scroll, so motion animates smoothly). Each card has **one stable
-content tree** — name row + code row always present — and is clipped to an
-animating height: collapsed (`headerHeight` 52) the code row sits below the fold
-and is clipped away; selected (`detailHeight` 132) the card grows and the clip
-**wipes the code into view**. Because nothing is swapped, expanding is a real
-slide-and-grow, never a crossfade.
+offsets (no scroll, so motion animates smoothly). Each card shows its name row
+always; the code row exists **only in `.detail`** and enters with a
+`.move(edge: .bottom)` transition, so it slides up into the card as it opens
+(it travels with the expansion — not a static clip-reveal, not a fade).
 
-Collapsed cards peek `stackStep` (44). Selecting slides everyone else to the
-bottom of the screen, stacked with `pilePeek` (46) — wide enough to keep each
-name row readable. A downward `DragGesture` past ~60pt returns the pulled card.
+Collapsed cards (`headerHeight` 56) peek `stackStep` (46). Selecting grows the
+card to `detailHeight` (130) and slides everyone else to the bottom of the
+screen, stacked with `pilePeek` (48) — wide enough to keep each name row
+readable. A downward `DragGesture` past ~60pt returns the pulled card.
 
 ## Interaction
 
