@@ -27,7 +27,7 @@ enum Theme {
 
     /// System type scale. SF for names, SF Mono for the code.
     enum Typography {
-        static let code = Font.system(size: 44, weight: .regular, design: .monospaced)
+        static let code = Font.system(size: 44, weight: .semibold, design: .monospaced)
         static let issuer = Font.headline                 // SF semibold
         static let label = Font.subheadline               // SF
     }

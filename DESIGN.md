@@ -74,7 +74,7 @@ name row readable. A downward `DragGesture` past ~60pt returns the pulled card.
 - **Tap a pulled-out card** → copy the code (success haptic, `accent` flash,
   "Copied" capsule 1.5s).
 - **Swipe a pulled-out card down** → return it to the deck.
-- **Long-press a card** → Delete.
+- **Long-press a card** → Edit (name, account, TOTP key) or Delete.
 
 ## Principles checklist (apply to any new surface)
 

@@ -12,6 +12,7 @@ import SwiftUI
 struct TokenListView: View {
     @Environment(VaultStore.self) private var store
     @State private var isScannerPresented = false
+    @State private var editingAccount: Account?
 
     var body: some View {
         NavigationStack {
@@ -35,6 +36,9 @@ struct TokenListView: View {
             .sheet(isPresented: $isScannerPresented) {
                 ScannerScreen()
             }
+            .sheet(item: $editingAccount) { account in
+                EditTokenView(account: account) { store.update($0) }
+            }
         }
     }
 
@@ -48,6 +52,7 @@ struct TokenListView: View {
                 CardStack(
                     accounts: store.accounts,
                     now: context.date,
+                    onEdit: { editingAccount = $0 },
                     onDelete: { store.delete($0) }
                 )
             }

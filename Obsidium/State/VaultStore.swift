@@ -54,6 +54,13 @@ final class VaultStore {
         persist()
     }
 
+    /// Replace an edited account (matched by id) and persist.
+    func update(_ account: Account) {
+        guard let index = accounts.firstIndex(where: { $0.id == account.id }) else { return }
+        accounts[index] = account
+        persist()
+    }
+
     private func persist() {
         do {
             try vault.save(accounts)

@@ -15,6 +15,7 @@ struct CardStack: View {
     let accounts: [Account]
     /// Current time, supplied by the enclosing TimelineView.
     let now: Date
+    let onEdit: (Account) -> Void
     let onDelete: (Account) -> Void
 
     @State private var selectedID: Account.ID?
@@ -50,6 +51,11 @@ struct CardStack: View {
                     .zIndex(isSelected ? 1000 : Double(index))
                     .gesture(isSelected ? dragToDismiss : nil)
                     .contextMenu {
+                        Button {
+                            onEdit(account)
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
                         Button(role: .destructive) {
                             onDelete(account)
                         } label: {
