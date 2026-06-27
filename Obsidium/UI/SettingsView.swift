@@ -92,6 +92,15 @@ struct SettingsView: View {
             } message: {
                 Text(resultMessage ?? "")
             }
+            .onChange(of: appLockEnabled) { _, enabled in
+                // Prompt right away so enabling gives immediate feedback and
+                // confirms the device can authenticate; revert on failure.
+                guard enabled else { return }
+                Task {
+                    let ok = await Biometrics.authenticate(reason: "Confirm to turn on Face ID lock")
+                    if !ok { await MainActor.run { appLockEnabled = false } }
+                }
+            }
         }
     }
 
