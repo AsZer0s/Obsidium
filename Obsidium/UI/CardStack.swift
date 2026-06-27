@@ -20,10 +20,10 @@ struct CardStack: View {
     @State private var dragOffset: CGFloat = 0
 
     // Geometry of the deck.
-    private let headerHeight: CGFloat = 78    // collapsed card height
-    private let detailHeight: CGFloat = 158   // pulled-out card height
-    private let stackStep: CGFloat = 62       // visible sliver per stacked card
-    private let pilePeek: CGFloat = 34        // sliver per card in the bottom pile
+    private let headerHeight: CGFloat = 66    // collapsed card height (single row)
+    private let detailHeight: CGFloat = 150   // pulled-out card height
+    private let stackStep: CGFloat = 54       // visible sliver per stacked card
+    private let pilePeek: CGFloat = 30        // sliver per card in the bottom pile
     private let gap: CGFloat = 14             // space below the pulled-out card
 
     private var spring: Animation { .spring(response: 0.5, dampingFraction: 0.84) }

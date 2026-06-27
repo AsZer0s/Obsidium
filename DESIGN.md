@@ -1,114 +1,79 @@
 # Obsidium Design System v1
 
-The visual language: **polished volcanic glass.** Each token is a slab of cut
-obsidian; a single spectral light catches its cut edge; and the code is
+A clean, HIG-aligned authenticator. Dark-first, system typography, minimal
+chrome. One rule governs everything —
 
-> engraved into the stone — the **only hero**.
+> Each token is an Apple Wallet–style card, and the **code is the hero**.
 
-All tokens live in `Obsidium/UI/Theme.swift`. The signature silhouette is
-`ObsidianSlab` (`UI/Components/ObsidianSlab.swift`). The code is the source of
-truth; this is the spec.
+Tokens live in `Obsidium/UI/Theme.swift`; the deck is `CardStack`. The code is
+the source of truth; this is the spec.
 
-## Signature
+## Signature — the deck
 
-Two things carry the identity:
+A **Wallet pull-out deck** (`CardStack`):
 
-1. **Wallet pull-out deck** — collapsed, cards overlap and each shows only its
-   **name + username**. Tap a card and it **pulls out** to reveal the engraved
-   code while the rest collapse into a thin pile below; **swipe the pulled-out
-   card down** to drop it back (`CardStack`).
-2. **Background icon block** — an oversized glyph pushed up-left so only its
-   bottom-right corner peeks into each card's top-left, at ~8% accent opacity.
-   (SF Symbol today; swap for a bundled FontAwesome brand glyph if desired.)
+- **Collapsed:** cards overlap; each shows **issuer on the left, account name on
+  the right** — so several accounts from one service (e.g. four Googles) stay
+  distinguishable at a glance. No code shown.
+- **Pull out:** tap a card → it rises to the top in `.detail` mode and reveals
+  the big SF Mono code + countdown ring; the rest collapse to a thin pile below.
+- **Put back:** swipe the pulled-out card down to drop it into the deck.
 
-The slab itself is a clean rounded rectangle (radius 20) with a faded **spectral
-sheen line** across its top edge — obsidian's glassy catch of light.
+A subtle icon block peeks from each card's top-left (SF Symbol; swap for a
+bundled FontAwesome glyph for brand marks).
 
 ## Spacing scale
 
-A single 4-based scale. Use these, never raw numbers.
+4-based: `xs 4 · sm 8 · md 12 · lg 16 · xl 24 · xxl 32`. Use these, never raw numbers.
 
-| Token | Value | Typical use |
-|-------|-------|-------------|
-| `xs`  | 4  | tight metadata gaps |
-| `sm`  | 8  | inline gaps, chip padding |
-| `md`  | 12 | chip/badge padding |
-| `lg`  | 16 | card horizontal padding, metadata→code gap |
-| `xl`  | 24 | card vertical padding ("air"), screen padding |
-| `xxl` | 32 | empty-state breathing room |
+## Type scale (system only)
 
-## Type scale
-
-A deliberate three-voice pairing (system faces only — nothing to bundle):
-
-| Token | Font | Role / voice |
+| Token | Font | Role |
 |-------|------|------|
-| `code`   | SF Mono 46, medium, `tracking(6)`, emboss shadow | engraved hero |
-| `issuer` | **New York serif** footnote, medium | nameplate (human) |
-| `label`  | SF Mono caption2 | machine handle (raw) |
+| `code`   | SF Mono 44, regular, `tracking(4)` | the hero |
+| `issuer` | `.headline` (SF semibold) | service name |
+| `label`  | `.subheadline` (SF), `.secondary` | account name (right-aligned) |
 
-Serif name + mono handle + mono code tells a small story: a human-named
-credential whose secret is machine output. The code uses
-`contentTransition(.numericText())` and `minimumScaleFactor(0.6)` so 8-digit
-codes still fit on small devices.
+The code uses `contentTransition(.numericText())` so digits roll, and
+`minimumScaleFactor(0.6)` so 8-digit codes fit.
 
-## Color tokens (obsidian palette)
+## Color tokens (dark)
 
 | Token | Value | Use |
 |-------|-------|-----|
-| `ink`        | `#050507` | deepest void |
-| `slab`       | `#16171C → #0A0B0E` gradient | polished card surface |
-| `sheenLine`  | violet `#7E8BFF` → cyan `#5BE0D4`, fading at ends | top-edge light streak |
-| `codeFill`   | white → `#CAD2DE` | engraved code glyphs |
-| `accent`     | glacial `#7BC8F0` | copy flash, actions, fresh countdown |
-| `warning`    | ember `#E8B05A` | countdown when ≤ 5s (stone cooling to molten) |
-| `cardStroke` | white @ 7% | hairline rims |
-| `background` | deep obsidian gradient | app background |
-
-The accent is cool and restrained; it warms to ember only as a code expires —
-a cooled-lava metaphor, the single temperature shift in the system.
+| `accent`     | icy blue `#66C7EB` | countdown, copy flash, actions |
+| `warning`    | amber `#F59366` | countdown when ≤ 5s |
+| `card`       | `#29292E → #1D1D21` gradient | flat elevated card surface |
+| `cardStroke` | white @ 9% | hairline rims |
+| `background` | near-black gradient | app background |
 
 ## Card surface
 
-A clean `RoundedRectangle` (radius 20) filled with `Theme.slab`, a `cardStroke`
-hairline rim, a faded `sheenLine` across the top edge, and a soft float shadow.
-Behind the content sits the oversized **icon block** (clipped to the card,
-peeking from the top-left). Internal padding: `lg` all round. Metadata sits at
-the top; the code is pushed `md` clear below it and embossed (`shadow black
-55%, radius 0, y 1`) so it reads carved into the surface.
+A `RoundedRectangle` (radius 20) filled with `Theme.card`, a `cardStroke`
+hairline rim, and a soft float shadow. No emboss, no sheen — clean and flat.
+The icon block sits clipped behind the content in the top-left.
 
 ## Layout — the deck
 
 `CardStack` positions cards in a `ZStack` by computed `y` offsets. Collapsed,
-each card is `header` mode (height 78) offset by `stackStep` (62) so it peeks.
-Selecting a card switches it to `detail` mode (height 158) at the top; the
-others drop into a thin pile (`pilePeek` 34) below it. A downward `DragGesture`
-on the pulled-out card past ~60pt drops it back; scrolling is disabled while a
-card is out so the drag isn't intercepted. Two card modes:
-
-- `.header` — name + username only; tap pulls the card out.
-- `.detail` — adds the ring + engraved code; tap copies, swipe down returns.
-
-Delete is a long-press context menu (the overlapping deck has no room for swipe).
-
-## Countdown
-
-One indicator only: a 20pt ring in the nameplate row's trailing edge. No numeric
-seconds, no progress bar (both compete with the code / read as "utility"). It
-drains and warms from glacial `accent` to ember `warning` at ≤ 5s. On rollover
-the code re-etches with a brief blur pulse (`blur 5 → 0`, ease-out 0.5s).
+each `.header` card (height 66) is offset by `stackStep` (54) so it peeks.
+Selecting switches it to `.detail` (height 150) at the top; the others drop into
+a thin pile (`pilePeek` 30) below. A downward `DragGesture` past ~60pt returns
+it; scrolling is disabled while a card is out so the drag isn't intercepted.
 
 ## Interaction
 
-- **Tap a card** → copies the code, success haptic, flashes the code `accent`,
-  shows a "Copied" capsule for 1.5s.
-- **Swipe a card** → delete.
+- **Tap a collapsed card** → pull it out (reveal code).
+- **Tap a pulled-out card** → copy the code (success haptic, `accent` flash,
+  "Copied" capsule 1.5s).
+- **Swipe a pulled-out card down** → return it to the deck.
+- **Long-press a card** → Delete.
 
 ## Principles checklist (apply to any new surface)
 
 - [ ] Is the code (or primary value) the unmistakable focus?
-- [ ] Is every supporting element demoted to metadata weight/color?
-- [ ] Spacing from the scale only; generous vertical air?
-- [ ] One slab surface + one facet sheen; no bespoke borders/shadows?
-- [ ] Motion subtle and purposeful (no utility-style progress chrome)?
-- [ ] Dark-first contrast holds; accent used sparingly, warmth reserved for expiry?
+- [ ] System fonts; supporting text demoted to `.secondary`?
+- [ ] Spacing from the scale; generous, even air?
+- [ ] One flat card surface; no bespoke gradients/shadows/decorations?
+- [ ] Motion subtle and native (numericText, springs)?
+- [ ] Dark contrast holds; accent used sparingly, warmth reserved for expiry?
