@@ -12,6 +12,7 @@ jobs:
   build-test-ipa:
     name: Build, Test & Package IPA
     runs-on: macos-latest
+    timeout-minutes: 30   # backstop: never let a sim hang burn the full 6h default
 
     env:
       PROJECT: Obsidium.xcodeproj
@@ -77,13 +78,22 @@ jobs:
           echo "Using simulator UDID: $UDID"
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
+      # Boot the simulator up front and wait until it's fully ready, so the
+      # test step doesn't stall on a cold boot (a common CI hang).
+      - name: Boot simulator
+        run: |
+          xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b
+
       - name: Run unit tests
+        timeout-minutes: 15
         run: |
           set -o pipefail
           xcodebuild test \
             -project "$PROJECT" \
             -scheme "$SCHEME" \
             -destination "id=${{ steps.sim.outputs.udid }}" \
+            -parallel-testing-enabled NO \
+            -test-timeouts-enabled YES \
             CODE_SIGNING_ALLOWED=NO \
             | tee build-logs/test.log
 
