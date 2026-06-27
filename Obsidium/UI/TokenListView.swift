@@ -12,7 +12,6 @@ import SwiftUI
 struct TokenListView: View {
     @Environment(VaultStore.self) private var store
     @State private var isScannerPresented = false
-    @State private var expanded = false
 
     var body: some View {
         NavigationStack {
@@ -22,19 +21,6 @@ struct TokenListView: View {
             }
             .navigationTitle("Obsidium")
             .toolbar {
-                if !store.accounts.isEmpty {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.84)) {
-                                expanded.toggle()
-                            }
-                        } label: {
-                            Image(systemName: expanded ? "rectangle.stack" : "list.bullet")
-                        }
-                        .tint(Theme.accent)
-                        .accessibilityLabel(expanded ? "Stack cards" : "Spread cards")
-                    }
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         isScannerPresented = true
@@ -61,7 +47,6 @@ struct TokenListView: View {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 CardStack(
                     accounts: store.accounts,
-                    expanded: $expanded,
                     now: context.date,
                     onDelete: { store.delete($0) }
                 )

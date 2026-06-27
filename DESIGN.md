@@ -13,9 +13,10 @@ truth; this is the spec.
 
 Two things carry the identity:
 
-1. **Wallet-style stacked deck** — cards collapse into an overlapping pile and
-   spring apart into a spaced list (`CardStack`). Stacked, only each card's top
-   `peek` shows; tap a collapsed card to expand, tap an expanded card to copy.
+1. **Wallet pull-out deck** — collapsed, cards overlap and each shows only its
+   **name + username**. Tap a card and it **pulls out** to reveal the engraved
+   code while the rest collapse into a thin pile below; **swipe the pulled-out
+   card down** to drop it back (`CardStack`).
 2. **Background icon block** — an oversized glyph pushed up-left so only its
    bottom-right corner peeks into each card's top-left, at ~8% accent opacity.
    (SF Symbol today; swap for a bundled FontAwesome brand glyph if desired.)
@@ -78,11 +79,17 @@ the top; the code is pushed `md` clear below it and embossed (`shadow black
 
 ## Layout — the deck
 
-`CardStack` lays the cards out with a single animated `VStack(spacing:)`:
-collapsed spacing is negative (`peek − cardHeight`) so cards overlap; expanded
-spacing is `md` so they spread. A toolbar control and a collapsed-card tap both
-toggle the state with a spring. Delete is a long-press context menu (the
-overlapping deck has no room for swipe).
+`CardStack` positions cards in a `ZStack` by computed `y` offsets. Collapsed,
+each card is `header` mode (height 78) offset by `stackStep` (62) so it peeks.
+Selecting a card switches it to `detail` mode (height 158) at the top; the
+others drop into a thin pile (`pilePeek` 34) below it. A downward `DragGesture`
+on the pulled-out card past ~60pt drops it back; scrolling is disabled while a
+card is out so the drag isn't intercepted. Two card modes:
+
+- `.header` — name + username only; tap pulls the card out.
+- `.detail` — adds the ring + engraved code; tap copies, swipe down returns.
+
+Delete is a long-press context menu (the overlapping deck has no room for swipe).
 
 ## Countdown
 

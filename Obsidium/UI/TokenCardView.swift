@@ -2,28 +2,29 @@
 //  TokenCardView.swift
 //  Obsidium
 //
-//  A token as a polished obsidian slab. The code is engraved into the surface
-//  (the only hero); the issuer is a small serif nameplate and the account a dim
-//  machine handle. A spectral light streaks the top edge. Used both as a
-//  free-standing card and as a member of the Wallet-style CardStack.
-//
-//  - When `stacked` is true a tap expands the deck (handled by the parent);
-//    otherwise a tap copies the code.
+//  A token as a polished obsidian slab, used inside the Wallet-style CardStack.
+//  Two modes:
+//    .header  — collapsed in the deck: shows only the name + username.
+//    .detail  — pulled out: adds the countdown ring and the engraved code.
+//  Tapping a header pulls the card out (parent handles it); tapping a detail
+//  card copies the code. An oversized icon block peeks from the top-left.
 //
 
 import SwiftUI
 import UIKit
 
 struct TokenCardView: View {
+    enum Mode { case header, detail }
+
     let account: Account
     /// Current time, supplied by the enclosing TimelineView.
     let now: Date
 
-    /// Fixed height for predictable overlap inside the stack (nil = intrinsic).
+    var mode: Mode = .detail
+    /// Fixed height so the stack can overlap cards predictably.
     var height: CGFloat? = nil
-    /// In the collapsed deck a tap expands rather than copies.
-    var stacked: Bool = false
-    var onStackTap: (() -> Void)? = nil
+    /// Pull the card out of the deck (header taps).
+    var onTap: (() -> Void)? = nil
 
     @State private var didCopy = false
     @State private var refreshBlur: CGFloat = 0
@@ -45,8 +46,44 @@ struct TokenCardView: View {
     private var showLabel: Bool { !account.label.isEmpty && account.displayTitle != account.label }
 
     var body: some View {
+        Group {
+            switch mode {
+            case .header: headerContent
+            case .detail: detailContent
+            }
+        }
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, Theme.Spacing.lg)
+        .frame(maxWidth: .infinity, minHeight: height ?? 0, alignment: .topLeading)
+        .background(slab)
+        .overlay { copiedBadge }
+        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .onTapGesture { mode == .header ? onTap?() : copyCode() }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityText)
+        .accessibilityHint(mode == .header ? "Double-tap to reveal code" : "Double-tap to copy")
+    }
+
+    // MARK: Collapsed — name + username only
+
+    private var headerContent: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            // Nameplate row — serif issuer + the lone countdown ring.
+            Text(account.displayTitle)
+                .font(.system(.headline, design: .serif))
+                .foregroundStyle(.white.opacity(0.92))
+                .lineLimit(1)
+            Text(showLabel ? account.label : "Tap to reveal code")
+                .font(Theme.Typography.label)
+                .foregroundStyle(.white.opacity(showLabel ? 0.5 : 0.35))
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: Pulled out — full card with the engraved code
+
+    private var detailContent: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
             HStack(alignment: .center, spacing: Theme.Spacing.sm) {
                 Text(account.displayTitle)
                     .font(Theme.Typography.issuer)
@@ -56,7 +93,6 @@ struct TokenCardView: View {
                 CountdownRing(progress: progress, secondsRemaining: secondsRemaining)
             }
 
-            // Machine handle — quiet, monospaced; only when it adds information.
             if showLabel {
                 Text(account.label)
                     .font(Theme.Typography.label)
@@ -64,7 +100,6 @@ struct TokenCardView: View {
                     .lineLimit(1)
             }
 
-            // Hero — the code, engraved into the slab.
             Text(formattedCode)
                 .font(Theme.Typography.code)
                 .tracking(6)
@@ -79,17 +114,9 @@ struct TokenCardView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .onChange(of: code) { _, _ in pulseRefresh() }
         }
-        .padding(.horizontal, Theme.Spacing.lg)
-        .padding(.vertical, Theme.Spacing.lg)
-        .frame(maxWidth: .infinity, minHeight: height ?? 0, alignment: .topLeading)
-        .background(slab)
-        .overlay { copiedBadge }
-        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-        .onTapGesture { stacked ? onStackTap?() : copyCode() }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(account.displayTitle), code \(code)")
-        .accessibilityHint(stacked ? "Double-tap to expand" : "Double-tap to copy")
     }
+
+    // MARK: Surface
 
     /// The polished obsidian surface: a background icon block, stone gradient,
     /// hairline rim, a spectral light across the top edge, and a soft float.
@@ -109,9 +136,8 @@ struct TokenCardView: View {
             .shadow(color: .black.opacity(0.4), radius: 14, y: 8)
     }
 
-    /// An oversized glyph as a background block — pushed up-left so only its
-    /// bottom-right corner peeks into the card's top-left. (SF Symbol stand-in;
-    /// swap for a bundled FontAwesome glyph to use brand marks.)
+    /// Oversized glyph pushed up-left so only its bottom-right peeks into the
+    /// card's top-left. (SF Symbol stand-in; swap for a bundled FontAwesome glyph.)
     private var watermark: some View {
         Image(systemName: watermarkSymbol)
             .font(.system(size: 150, weight: .black))
@@ -120,7 +146,6 @@ struct TokenCardView: View {
             .allowsHitTesting(false)
     }
 
-    /// Deterministic per-issuer pick so each account keeps a stable motif.
     private var watermarkSymbol: String {
         let symbols = [
             "lock.shield.fill", "key.fill", "bolt.shield.fill",
@@ -143,6 +168,12 @@ struct TokenCardView: View {
                 .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
                 .transition(.scale(scale: 0.85).combined(with: .opacity))
         }
+    }
+
+    private var accessibilityText: String {
+        mode == .header
+            ? "\(account.displayTitle)\(showLabel ? ", \(account.label)" : "")"
+            : "\(account.displayTitle), code \(code)"
     }
 
     /// Brief "re-etch into focus" when the code rolls over.
