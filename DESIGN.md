@@ -11,10 +11,17 @@ truth; this is the spec.
 
 ## Signature
 
-A slab with three rounded corners and **one chamfered (cut) top-right corner**,
-like a struck piece of obsidian. A 1.5pt spectral sheen (`Theme.sheen`,
-violet→cyan) traces only that cut edge — obsidian's rainbow fracture. Nothing
-else on the card competes with it; this is the one bold element.
+Two things carry the identity:
+
+1. **Wallet-style stacked deck** — cards collapse into an overlapping pile and
+   spring apart into a spaced list (`CardStack`). Stacked, only each card's top
+   `peek` shows; tap a collapsed card to expand, tap an expanded card to copy.
+2. **Background icon block** — an oversized glyph pushed up-left so only its
+   bottom-right corner peeks into each card's top-left, at ~8% accent opacity.
+   (SF Symbol today; swap for a bundled FontAwesome brand glyph if desired.)
+
+The slab itself is a clean rounded rectangle (radius 20) with a faded **spectral
+sheen line** across its top edge — obsidian's glassy catch of light.
 
 ## Spacing scale
 
@@ -50,7 +57,7 @@ codes still fit on small devices.
 |-------|-------|-----|
 | `ink`        | `#050507` | deepest void |
 | `slab`       | `#16171C → #0A0B0E` gradient | polished card surface |
-| `sheen`      | violet `#7E8BFF` → cyan `#5BE0D4` | the cut-facet light (signature) |
+| `sheenLine`  | violet `#7E8BFF` → cyan `#5BE0D4`, fading at ends | top-edge light streak |
 | `codeFill`   | white → `#CAD2DE` | engraved code glyphs |
 | `accent`     | glacial `#7BC8F0` | copy flash, actions, fresh countdown |
 | `warning`    | ember `#E8B05A` | countdown when ≤ 5s (stone cooling to molten) |
@@ -62,11 +69,20 @@ a cooled-lava metaphor, the single temperature shift in the system.
 
 ## Card surface
 
-`ObsidianSlab` filled with `Theme.slab`, a `cardStroke` hairline rim, the
-`sheen` facet on the cut corner, and a soft float shadow. Internal padding:
-`lg` horizontal, `xl` vertical. Metadata sits at the top; the code is pushed
-`lg` clear below it. The code is embossed (`shadow black 55%, radius 0, y 1`)
-so it reads carved into the surface.
+A clean `RoundedRectangle` (radius 20) filled with `Theme.slab`, a `cardStroke`
+hairline rim, a faded `sheenLine` across the top edge, and a soft float shadow.
+Behind the content sits the oversized **icon block** (clipped to the card,
+peeking from the top-left). Internal padding: `lg` all round. Metadata sits at
+the top; the code is pushed `md` clear below it and embossed (`shadow black
+55%, radius 0, y 1`) so it reads carved into the surface.
+
+## Layout — the deck
+
+`CardStack` lays the cards out with a single animated `VStack(spacing:)`:
+collapsed spacing is negative (`peek − cardHeight`) so cards overlap; expanded
+spacing is `md` so they spread. A toolbar control and a collapsed-card tap both
+toggle the state with a spring. Delete is a long-press context menu (the
+overlapping deck has no room for swipe).
 
 ## Countdown
 

@@ -23,8 +23,7 @@ enum Theme {
     }
 
     enum Radius {
-        static let card: CGFloat = 18
-        static let chamfer: CGFloat = 24
+        static let card: CGFloat = 20
     }
 
     /// Type scale. The code dominates; the rest reads as the artifact's label.
@@ -52,11 +51,14 @@ enum Theme {
         endPoint: .bottomTrailing
     )
 
-    /// Spectral sheen that traces the cut facet — obsidian's rainbow edge.
-    static let sheen = LinearGradient(
+    /// Spectral sheen — a polished light streak across the slab's top edge,
+    /// fading at both ends. Obsidian's glassy catch of light.
+    static let sheenLine = LinearGradient(
         colors: [
-            Color(red: 0.49, green: 0.55, blue: 1.00),     // cool violet
-            Color(red: 0.36, green: 0.88, blue: 0.84),     // cyan
+            .clear,
+            Color(red: 0.49, green: 0.55, blue: 1.00).opacity(0.55),  // cool violet
+            Color(red: 0.36, green: 0.88, blue: 0.84).opacity(0.55),  // cyan
+            .clear,
         ],
         startPoint: .leading,
         endPoint: .trailing

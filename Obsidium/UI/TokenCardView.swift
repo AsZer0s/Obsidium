@@ -2,10 +2,13 @@
 //  TokenCardView.swift
 //  Obsidium
 //
-//  A token as a slab of cut obsidian. The code is engraved into the polished
-//  surface (the only hero); the issuer is a small serif nameplate and the
-//  account a dim machine handle. A single spectral light traces the cut corner.
-//  On each rollover the code re-etches with a brief sharpen. Tap to copy.
+//  A token as a polished obsidian slab. The code is engraved into the surface
+//  (the only hero); the issuer is a small serif nameplate and the account a dim
+//  machine handle. A spectral light streaks the top edge. Used both as a
+//  free-standing card and as a member of the Wallet-style CardStack.
+//
+//  - When `stacked` is true a tap expands the deck (handled by the parent);
+//    otherwise a tap copies the code.
 //
 
 import SwiftUI
@@ -15,6 +18,12 @@ struct TokenCardView: View {
     let account: Account
     /// Current time, supplied by the enclosing TimelineView.
     let now: Date
+
+    /// Fixed height for predictable overlap inside the stack (nil = intrinsic).
+    var height: CGFloat? = nil
+    /// In the collapsed deck a tap expands rather than copies.
+    var stacked: Bool = false
+    var onStackTap: (() -> Void)? = nil
 
     @State private var didCopy = false
     @State private var refreshBlur: CGFloat = 0
@@ -66,30 +75,61 @@ struct TokenCardView: View {
                 .blur(radius: refreshBlur)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
-                .padding(.top, Theme.Spacing.lg)
+                .padding(.top, Theme.Spacing.md)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .onChange(of: code) { _, _ in pulseRefresh() }
         }
         .padding(.horizontal, Theme.Spacing.lg)
-        .padding(.vertical, Theme.Spacing.xl)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, Theme.Spacing.lg)
+        .frame(maxWidth: .infinity, minHeight: height ?? 0, alignment: .topLeading)
         .background(slab)
         .overlay { copiedBadge }
-        .contentShape(ObsidianSlab())
-        .onTapGesture(perform: copyCode)
+        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .onTapGesture { stacked ? onStackTap?() : copyCode() }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(account.displayTitle), code \(code)")
-        .accessibilityHint("Double-tap to copy")
+        .accessibilityHint(stacked ? "Double-tap to expand" : "Double-tap to copy")
     }
 
-    /// The cut-obsidian surface: polished gradient, hairline rim, and the
-    /// spectral light catching the cut corner.
+    /// The polished obsidian surface: a background icon block, stone gradient,
+    /// hairline rim, a spectral light across the top edge, and a soft float.
     private var slab: some View {
-        ObsidianSlab()
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+        return shape
             .fill(Theme.slab)
-            .overlay(ObsidianSlab().stroke(Theme.cardStroke, lineWidth: 1))
-            .overlay(ObsidianFacet().stroke(Theme.sheen, lineWidth: 1.5))
-            .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
+            .overlay(alignment: .topLeading) { watermark }
+            .clipShape(shape)
+            .overlay(shape.stroke(Theme.cardStroke, lineWidth: 1))
+            .overlay(alignment: .top) {
+                Theme.sheenLine
+                    .frame(height: 1)
+                    .padding(.horizontal, Theme.Spacing.xl)
+                    .padding(.top, 1)
+            }
+            .shadow(color: .black.opacity(0.4), radius: 14, y: 8)
+    }
+
+    /// An oversized glyph as a background block — pushed up-left so only its
+    /// bottom-right corner peeks into the card's top-left. (SF Symbol stand-in;
+    /// swap for a bundled FontAwesome glyph to use brand marks.)
+    private var watermark: some View {
+        Image(systemName: watermarkSymbol)
+            .font(.system(size: 150, weight: .black))
+            .foregroundStyle(Theme.accent.opacity(0.08))
+            .offset(x: -58, y: -78)
+            .allowsHitTesting(false)
+    }
+
+    /// Deterministic per-issuer pick so each account keeps a stable motif.
+    private var watermarkSymbol: String {
+        let symbols = [
+            "lock.shield.fill", "key.fill", "bolt.shield.fill",
+            "checkmark.shield.fill", "cube.fill", "hexagon.fill",
+            "seal.fill", "cpu.fill",
+        ]
+        let key = account.issuer.isEmpty ? account.label : account.issuer
+        let sum = key.unicodeScalars.reduce(0) { $0 + Int($1.value) }
+        return symbols[sum % symbols.count]
     }
 
     @ViewBuilder private var copiedBadge: some View {

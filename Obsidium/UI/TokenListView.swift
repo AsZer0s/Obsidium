@@ -2,8 +2,9 @@
 //  TokenListView.swift
 //  Obsidium
 //
-//  The app's only main screen: a dark, card-based list of tokens with a live
-//  countdown, swipe-to-delete, a designed empty state, and a + button to scan.
+//  The app's only main screen: a dark, Apple Wallet–style stacked deck of
+//  tokens with a live countdown, a designed empty state, a stack/spread toggle,
+//  and a + button to scan.
 //
 
 import SwiftUI
@@ -11,6 +12,7 @@ import SwiftUI
 struct TokenListView: View {
     @Environment(VaultStore.self) private var store
     @State private var isScannerPresented = false
+    @State private var expanded = false
 
     var body: some View {
         NavigationStack {
@@ -20,6 +22,19 @@ struct TokenListView: View {
             }
             .navigationTitle("Obsidium")
             .toolbar {
+                if !store.accounts.isEmpty {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.84)) {
+                                expanded.toggle()
+                            }
+                        } label: {
+                            Image(systemName: expanded ? "rectangle.stack" : "list.bullet")
+                        }
+                        .tint(Theme.accent)
+                        .accessibilityLabel(expanded ? "Stack cards" : "Spread cards")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         isScannerPresented = true
@@ -42,34 +57,15 @@ struct TokenListView: View {
         if store.accounts.isEmpty {
             EmptyStateView { isScannerPresented = true }
         } else {
-            tokenList
-        }
-    }
-
-    private var tokenList: some View {
-        // One ticking clock drives every card so codes and rings stay in sync.
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            List {
-                ForEach(store.accounts) { account in
-                    TokenCardView(account: account, now: context.date)
-                        .listRowInsets(EdgeInsets(
-                            top: Theme.Spacing.sm - 2, leading: Theme.Spacing.lg,
-                            bottom: Theme.Spacing.sm - 2, trailing: Theme.Spacing.lg
-                        ))
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) {
-                                store.delete(account)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                }
+            // One ticking clock drives every card so codes and rings stay in sync.
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                CardStack(
+                    accounts: store.accounts,
+                    expanded: $expanded,
+                    now: context.date,
+                    onDelete: { store.delete($0) }
+                )
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .scrollIndicators(.hidden)
         }
     }
 }
