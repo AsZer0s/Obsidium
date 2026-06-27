@@ -3,15 +3,22 @@
 //  Obsidium
 //
 //  The app's only main screen: a dark, Apple Wallet–style stacked deck of
-//  tokens with a live countdown, a designed empty state, a stack/spread toggle,
-//  and a + button to scan.
+//  tokens with a live countdown, a designed empty state, Settings, an Edit
+//  sheet, a copy toast, and a + button to scan. Delete is gated behind Face ID
+//  when the user enables it in Settings.
 //
 
 import SwiftUI
 
 struct TokenListView: View {
     @Environment(VaultStore.self) private var store
+    @Environment(ToastCenter.self) private var toast
+
+    @AppStorage("requireBiometricsForSensitiveActions")
+    private var requireBiometrics = false
+
     @State private var isScannerPresented = false
+    @State private var isSettingsPresented = false
     @State private var editingAccount: Account?
 
     var body: some View {
@@ -22,6 +29,15 @@ struct TokenListView: View {
             }
             .navigationTitle("Obsidium")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        isSettingsPresented = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                    .tint(Theme.accent)
+                    .accessibilityLabel("Settings")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         isScannerPresented = true
@@ -36,9 +52,20 @@ struct TokenListView: View {
             .sheet(isPresented: $isScannerPresented) {
                 ScannerScreen()
             }
+            .sheet(isPresented: $isSettingsPresented) {
+                SettingsView()
+            }
             .sheet(item: $editingAccount) { account in
                 EditTokenView(account: account) { store.update($0) }
             }
+            .overlay(alignment: .bottom) {
+                if let message = toast.message {
+                    ToastView(text: message)
+                        .padding(.bottom, Theme.Spacing.xxl)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.snappy, value: toast.message)
         }
     }
 
@@ -53,10 +80,43 @@ struct TokenListView: View {
                     accounts: store.accounts,
                     now: context.date,
                     onEdit: { editingAccount = $0 },
-                    onDelete: { store.delete($0) }
+                    onDelete: deleteGated
                 )
             }
         }
+    }
+
+    /// Delete, behind Face ID if the user enabled it.
+    private func deleteGated(_ account: Account) {
+        guard requireBiometrics else {
+            store.delete(account)
+            return
+        }
+        Task {
+            if await Biometrics.authenticate(reason: "Authenticate to delete this token") {
+                await MainActor.run { store.delete(account) }
+            }
+        }
+    }
+}
+
+/// A small "Code copied" toast pinned near the bottom.
+private struct ToastView: View {
+    let text: String
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.sm) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(Theme.accent)
+            Text(text)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.primary)
+        }
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, Theme.Spacing.md)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+        .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
     }
 }
 

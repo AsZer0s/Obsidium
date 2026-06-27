@@ -11,11 +11,13 @@ import SwiftUI
 @main
 struct ObsidiumApp: App {
     @State private var store = VaultStore()
+    @State private var toast = ToastCenter()
 
     var body: some Scene {
         WindowGroup {
             TokenListView()
                 .environment(store)
+                .environment(toast)
                 .preferredColorScheme(.dark)   // Obsidium is dark-first
                 .onAppear { store.load() }
         }

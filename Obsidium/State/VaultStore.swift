@@ -61,6 +61,34 @@ final class VaultStore {
         persist()
     }
 
+    // MARK: Backup
+
+    /// Encode the whole vault for export (JSON of `[Account]`).
+    func exportData() -> Data? {
+        try? JSONEncoder().encode(accounts)
+    }
+
+    /// Restore from a backup: update accounts that already exist (by id) and
+    /// add the rest. Returns the number of newly added accounts, or nil if the
+    /// data isn't a valid backup.
+    @discardableResult
+    func merge(from data: Data) -> Int? {
+        guard let imported = try? JSONDecoder().decode([Account].self, from: data) else {
+            return nil
+        }
+        var added = 0
+        for account in imported {
+            if let index = accounts.firstIndex(where: { $0.id == account.id }) {
+                accounts[index] = account
+            } else {
+                accounts.append(account)
+                added += 1
+            }
+        }
+        persist()
+        return added
+    }
+
     private func persist() {
         do {
             try vault.save(accounts)

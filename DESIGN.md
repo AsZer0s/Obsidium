@@ -71,10 +71,18 @@ name row readable. A downward `DragGesture` past ~60pt returns the pulled card.
 ## Interaction
 
 - **Tap a collapsed card** → pull it out (reveal code).
-- **Tap a pulled-out card** → copy the code (success haptic, `accent` flash,
-  "Copied" capsule 1.5s).
+- **Tap a pulled-out card** → copy the code (crisp haptic + a bottom **toast**,
+  and the code briefly flashes `accent`).
 - **Swipe a pulled-out card down** → return it to the deck.
 - **Long-press a card** → Edit (name, account, TOTP key) or Delete.
+
+## Settings & security
+
+A gear button opens **Settings**: a **Face ID** toggle that gates the sensitive
+actions (delete & export), plus **Export Backup** and **Import / Restore**
+(JSON via the system file exporter/importer). Backups are plain-text keys —
+the screen says so. Biometrics use `.deviceOwnerAuthentication` (passcode
+fallback); the toggle persists in `@AppStorage`.
 
 ## Principles checklist (apply to any new surface)
 

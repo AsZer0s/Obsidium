@@ -35,6 +35,7 @@ targets:
         # Info.plist is generated; the camera key is injected here.
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_NSCameraUsageDescription: "Obsidium uses the camera only to scan 2FA QR codes. Nothing is recorded or sent anywhere."
+        INFOPLIST_KEY_NSFaceIDUsageDescription: "Obsidium uses Face ID to protect sensitive actions like deleting tokens and exporting your backup."
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
 
   ObsidiumTests:

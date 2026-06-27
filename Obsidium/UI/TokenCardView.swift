@@ -11,7 +11,7 @@
 //  slide-and-grow, never a crossfade.
 //
 //  `mode` only governs tap behaviour (header → pull out, detail → copy) and
-//  the accessibility label.
+//  the accessibility label. Copying raises an app-level toast + haptic.
 //
 
 import SwiftUI
@@ -30,6 +30,7 @@ struct TokenCardView: View {
     /// Pull the card out of the deck (header taps).
     var onTap: (() -> Void)? = nil
 
+    @Environment(ToastCenter.self) private var toast
     @State private var didCopy = false
 
     private var code: String { TOTPGenerator.code(for: account, at: now) ?? "------" }
@@ -62,7 +63,6 @@ struct TokenCardView: View {
         .background(cardSurface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
-        .overlay { copiedBadge }
         .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .onTapGesture { mode == .header ? onTap?() : copyCode() }
         .accessibilityElement(children: .combine)
@@ -138,19 +138,6 @@ struct TokenCardView: View {
         return symbols[sum % symbols.count]
     }
 
-    @ViewBuilder private var copiedBadge: some View {
-        if didCopy {
-            Text("Copied")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.accent)
-                .padding(.horizontal, Theme.Spacing.md)
-                .padding(.vertical, Theme.Spacing.sm)
-                .background(.ultraThinMaterial, in: Capsule())
-                .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
-                .transition(.scale(scale: 0.85).combined(with: .opacity))
-        }
-    }
-
     private var accessibilityText: String {
         mode == .header
             ? "\(account.displayTitle)\(hasLabel ? ", \(account.label)" : "")"
@@ -160,10 +147,11 @@ struct TokenCardView: View {
     private func copyCode() {
         guard hasCode else { return }
         UIPasteboard.general.string = code
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.copy()
+        toast.show("Code copied")
         withAnimation(.snappy) { didCopy = true }
         Task {
-            try? await Task.sleep(for: .seconds(1.5))
+            try? await Task.sleep(for: .seconds(1.2))
             withAnimation(.snappy) { didCopy = false }
         }
     }
