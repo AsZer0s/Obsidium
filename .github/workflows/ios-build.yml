@@ -41,13 +41,20 @@ jobs:
           xcodebuild -version | tee build-logs/environment.log
           xcodebuild -list -project "$PROJECT" | tee -a build-logs/environment.log
 
-      # Pick whatever iPhone simulator the runner's Xcode actually ships with,
-      # so we never hard-code a device name that may not exist.
+      # Ask xcodebuild which destinations IT considers eligible for the scheme
+      # (simctl can list simulators xcodebuild won't accept), then pick the
+      # first iPhone simulator. No hard-coded device names to drift over time.
       - name: Resolve a simulator
         id: sim
         run: |
-          UDID=$(xcrun simctl list devices available -j \
-            | jq -r '[.devices[][] | select(.name | test("iPhone"))][0].udid')
+          UDID=$(xcodebuild -showdestinations -project "$PROJECT" -scheme "$SCHEME" 2>/dev/null \
+            | grep 'platform:iOS Simulator' \
+            | grep 'name:iPhone' \
+            | grep -Eo 'id:[A-F0-9-]+' \
+            | head -1 | cut -d: -f2)
+          if [ -z "$UDID" ]; then
+            echo "No eligible iPhone simulator found"; exit 1
+          fi
           echo "Using simulator UDID: $UDID"
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
