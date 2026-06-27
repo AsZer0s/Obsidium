@@ -41,18 +41,37 @@ jobs:
           xcodebuild -version | tee build-logs/environment.log
           xcodebuild -list -project "$PROJECT" | tee -a build-logs/environment.log
 
-      # Ask xcodebuild which destinations IT considers eligible for the scheme
-      # (simctl can list simulators xcodebuild won't accept), then pick the
-      # first iPhone simulator. No hard-coded device names to drift over time.
+      # Resolve a simulator robustly. Primary source: the destinations
+      # xcodebuild itself reports as eligible for the scheme (capturing BOTH
+      # streams — the list can land on stderr). Fallback: any available iPhone
+      # on an iOS 26 runtime (matching the deployment target, so it can't be a
+      # below-target device that xcodebuild would reject). The raw list is
+      # printed for easy debugging.
       - name: Resolve a simulator
         id: sim
         run: |
-          UDID=$(xcodebuild -showdestinations -project "$PROJECT" -scheme "$SCHEME" 2>/dev/null \
+          echo "::group::xcodebuild -showdestinations"
+          DESTS=$(xcodebuild -showdestinations -project "$PROJECT" -scheme "$SCHEME" 2>&1 || true)
+          echo "$DESTS"
+          echo "::endgroup::"
+
+          # Placeholder/iPad/Vision rows are dropped by the iPhone + Simulator
+          # filters; remaining rows are real simulator devices with hex UDIDs.
+          UDID=$(printf '%s\n' "$DESTS" \
             | grep 'platform:iOS Simulator' \
             | grep 'name:iPhone' \
-            | grep -Eo 'id:[A-F0-9-]+' \
-            | head -1 | cut -d: -f2)
+            | sed -nE 's/.*, id:([0-9A-Fa-f-]+),.*/\1/p' \
+            | head -1)
+
           if [ -z "$UDID" ]; then
+            echo "showdestinations yielded nothing; falling back to simctl (iOS 26)"
+            UDID=$(xcrun simctl list devices available -j \
+              | jq -r '[.devices | to_entries[]
+                        | select(.key | test("iOS-26"))
+                        | .value[] | select(.name | test("iPhone"))][0].udid')
+          fi
+
+          if [ -z "$UDID" ] || [ "$UDID" = "null" ]; then
             echo "No eligible iPhone simulator found"; exit 1
           fi
           echo "Using simulator UDID: $UDID"
