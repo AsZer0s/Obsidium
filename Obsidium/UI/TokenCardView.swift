@@ -64,7 +64,7 @@ struct TokenCardView: View {
         .padding(.vertical, Theme.Spacing.lg)
         .frame(maxWidth: .infinity, minHeight: height ?? 0, maxHeight: height, alignment: .topLeading)
         .background(cardSurface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .compositingGroup()
         .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
         .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .onTapGesture { mode == .header ? onTap?() : copyCode() }
@@ -112,14 +112,15 @@ struct TokenCardView: View {
     // MARK: Surface
 
     /// Flat elevated card with a hairline rim and a subtle brand icon watermark
-    /// in the top-left. (Shadow is applied by the body, after the content clip.)
+    /// in the top-left.
     private var cardSurface: some View {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-        return shape
-            .fill(Theme.card)
-            .overlay(alignment: .topLeading) { watermark }
-            .clipShape(shape)
-            .overlay(shape.stroke(Theme.cardStroke, lineWidth: 1))
+        return ZStack {
+            shape.fill(Theme.card)
+            shape.stroke(Theme.cardStroke, lineWidth: 1)
+            watermark
+        }
+        .clipShape(shape)
     }
 
     private var selectedBrandIcon: BrandIcon {

@@ -60,6 +60,14 @@ struct CardStack: View {
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
+                    } preview: {
+                        TokenCardView(
+                            account: account,
+                            now: now,
+                            mode: .detail,
+                            height: detailHeight
+                        )
+                        .padding(Theme.Spacing.lg)
                     }
                 }
             }
