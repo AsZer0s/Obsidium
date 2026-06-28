@@ -2,7 +2,7 @@
 //  EditTokenView.swift
 //  Obsidium
 //
-//  A simple sheet to edit a token's name, account name, and
+//  A modern sheet to edit a token's name, account name, and
 //  TOTP key (Base32 secret). Also lets you select a brand icon
 //  from a picker grid.
 //
@@ -40,7 +40,8 @@ struct EditTokenView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Theme.Spacing.xl) {
-                    iconPickerSection
+                    previewCard
+                    iconSection
                     fieldsSection
                 }
                 .padding(Theme.Spacing.lg)
@@ -59,9 +60,44 @@ struct EditTokenView: View {
         }
     }
 
-    // MARK: Icon Picker
+    // MARK: Preview Card
 
-    private var iconPickerSection: some View {
+    private var previewCard: some View {
+        VStack(spacing: Theme.Spacing.lg) {
+            HStack(spacing: Theme.Spacing.lg) {
+                let icon = selectedBrandIcon
+                Image(systemName: icon.symbol)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(icon.tint ?? Theme.accent)
+                    .frame(width: 72, height: 72)
+                    .background(Theme.card)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+                    .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card).stroke(Theme.cardStroke, lineWidth: 1))
+
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                    Text(issuer.isEmpty ? "Issuer" : issuer)
+                        .font(Theme.Typography.issuer)
+                        .foregroundStyle(issuer.isEmpty ? .tertiary : .primary)
+                    Text(label.isEmpty ? "Account" : label)
+                        .font(Theme.Typography.label)
+                        .foregroundStyle(label.isEmpty ? .tertiary : .secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(Theme.Spacing.lg)
+        }
+        .background(Theme.card)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card).stroke(Theme.cardStroke, lineWidth: 1))
+    }
+
+    private var selectedBrandIcon: BrandIcon {
+        selectedIconID.flatMap { BrandIcon.find(id: $0) } ?? .default
+    }
+
+    // MARK: Icon Section
+
+    private var iconSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             Text("Icon")
                 .font(.subheadline.weight(.medium))
@@ -112,31 +148,78 @@ struct EditTokenView: View {
     // MARK: Fields
 
     private var fieldsSection: some View {
-        VStack(spacing: Theme.Spacing.md) {
-            LabeledContent("Name") {
-                TextField("Issuer", text: $issuer)
-                    .multilineTextAlignment(.trailing)
-            }
+        VStack(spacing: 0) {
+            fieldRow(
+                title: "Name",
+                placeholder: "Issuer (e.g. GitHub)",
+                text: $issuer,
+                icon: "building.2.fill"
+            )
 
-            LabeledContent("Account") {
-                TextField("Account name", text: $label)
-                    .multilineTextAlignment(.trailing)
+            Divider()
+                .overlay(Color.white.opacity(0.1))
+                .padding(.leading, 52)
+
+            fieldRow(
+                title: "Account",
+                placeholder: "Account name (e.g. johndoe)",
+                text: $label,
+                icon: "person.fill"
+            )
+
+            Divider()
+                .overlay(Color.white.opacity(0.1))
+                .padding(.leading, 52)
+
+            secretFieldRow
+        }
+        .background(Color.white.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card).stroke(Theme.cardStroke, lineWidth: 1))
+    }
+
+    private func fieldRow(title: String, placeholder: String, text: Binding<String>, icon: String) -> some View {
+        HStack(spacing: Theme.Spacing.md) {
+            Image(systemName: icon)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                TextField(placeholder, text: text)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
+        }
+        .padding(Theme.Spacing.lg)
+    }
 
-            LabeledContent("Secret") {
+    private var secretFieldRow: some View {
+        HStack(spacing: Theme.Spacing.md) {
+            Image(systemName: "key.fill")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(secretIsValid ? Theme.accent : Theme.warning)
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Secret")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 TextField("Base32 secret", text: $secret, axis: .vertical)
                     .font(.system(.body, design: .monospaced))
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
-                    .multilineTextAlignment(.trailing)
+            }
+
+            if !secret.isEmpty {
+                Image(systemName: secretIsValid ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .foregroundStyle(secretIsValid ? .green : Theme.warning)
             }
         }
         .padding(Theme.Spacing.lg)
-        .background(Color.white.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
-        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card).stroke(Theme.cardStroke, lineWidth: 1))
     }
 
     private func save() {

@@ -49,15 +49,12 @@ struct ScannerScreen: View {
                     Button("Cancel") { dismiss() }
                 }
             }
-            .sheet(isPresented: $isShowingPhotoPicker) {
-                PhotosPicker(
-                    selection: $photoPickerItem,
-                    matching: .images,
-                    preferredItemEncoding: .automatic
-                ) {
-                    Text("Cancel")
-                }
-            }
+            .photosPicker(
+                isPresented: $isShowingPhotoPicker,
+                selection: $photoPickerItem,
+                matching: .images,
+                preferredItemEncoding: .automatic
+            )
             .onChange(of: photoPickerItem) { _, item in
                 guard let item else { return }
                 Task {
