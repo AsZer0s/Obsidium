@@ -39,6 +39,9 @@ struct Account: Codable, Identifiable, Hashable {
     var digits: Int
     var period: Int
 
+    /// Selected icon ID, or nil for the default.
+    var iconID: String?
+
     init(
         id: UUID = UUID(),
         issuer: String,
@@ -46,7 +49,8 @@ struct Account: Codable, Identifiable, Hashable {
         secret: String,
         algorithm: OTPAlgorithm = .sha1,
         digits: Int = 6,
-        period: Int = 30
+        period: Int = 30,
+        iconID: String? = nil
     ) {
         self.id = id
         self.issuer = issuer
@@ -55,6 +59,7 @@ struct Account: Codable, Identifiable, Hashable {
         self.algorithm = algorithm
         self.digits = digits
         self.period = period
+        self.iconID = iconID
     }
 }
 

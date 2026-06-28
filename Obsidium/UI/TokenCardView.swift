@@ -111,8 +111,8 @@ struct TokenCardView: View {
 
     // MARK: Surface
 
-    /// Flat elevated card with a hairline rim and a subtle icon block in the
-    /// top-left. (Shadow is applied by the body, after the content clip.)
+    /// Flat elevated card with a hairline rim and a subtle brand icon watermark
+    /// in the top-left. (Shadow is applied by the body, after the content clip.)
     private var cardSurface: some View {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
         return shape
@@ -122,23 +122,19 @@ struct TokenCardView: View {
             .overlay(shape.stroke(Theme.cardStroke, lineWidth: 1))
     }
 
-    private var watermark: some View {
-        Image(systemName: watermarkSymbol)
-            .font(.system(size: 132, weight: .black))
-            .foregroundStyle(.white.opacity(0.05))
-            .offset(x: -50, y: -66)
-            .allowsHitTesting(false)
+    private var selectedBrandIcon: BrandIcon {
+        account.iconID.flatMap { BrandIcon.find(id: $0) }
+            ?? BrandIcon.autodetect(for: account.issuer)
+            ?? .default
     }
 
-    private var watermarkSymbol: String {
-        let symbols = [
-            "lock.shield.fill", "key.fill", "bolt.shield.fill",
-            "checkmark.shield.fill", "cube.fill", "hexagon.fill",
-            "seal.fill", "cpu.fill",
-        ]
-        let key = account.issuer.isEmpty ? account.label : account.issuer
-        let sum = key.unicodeScalars.reduce(0) { $0 + Int($1.value) }
-        return symbols[sum % symbols.count]
+    private var watermark: some View {
+        let icon = selectedBrandIcon
+        return Image(systemName: icon.symbol)
+            .font(.system(size: 132, weight: .black))
+            .foregroundStyle(icon.tint?.opacity(0.06) ?? .white.opacity(0.05))
+            .offset(x: -50, y: -66)
+            .allowsHitTesting(false)
     }
 
     private var accessibilityText: String {

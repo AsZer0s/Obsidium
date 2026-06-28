@@ -72,13 +72,15 @@ enum OTPAuthParser {
         let digits = value("digits").flatMap { Int($0) } ?? 6
         let period = value("period").flatMap { Int($0) } ?? 30
 
+        let iconID = BrandIcon.autodetect(for: issuer)?.id
         return Account(
             issuer: issuer,
             label: label,
             secret: secret,
             algorithm: algorithm,
             digits: digits,
-            period: period
+            period: period,
+            iconID: iconID
         )
     }
 }
