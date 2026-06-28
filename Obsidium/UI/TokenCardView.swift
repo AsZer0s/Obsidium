@@ -45,31 +45,6 @@ struct TokenCardView: View {
     private var hasLabel: Bool { !account.label.isEmpty && account.displayTitle != account.label }
 
     var body: some View {
-        ZStack {
-            cardBackground
-            content
-        }
-        .frame(maxWidth: .infinity, minHeight: height ?? 0, maxHeight: height, alignment: .topLeading)
-        .compositingGroup()
-        .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
-        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-        .onTapGesture { mode == .header ? onTap?() : copyCode() }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityText)
-        .accessibilityHint(mode == .header ? "Double-tap to reveal code" : "Double-tap to copy")
-    }
-
-    private var cardBackground: some View {
-        let shape = RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-        return ZStack {
-            shape.fill(Theme.card)
-            shape.stroke(Theme.cardStroke, lineWidth: 1)
-            watermark
-        }
-        .clipShape(shape)
-    }
-
-    private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
             nameRow
             if mode == .detail {
@@ -80,6 +55,22 @@ struct TokenCardView: View {
         }
         .padding(.horizontal, Theme.Spacing.lg)
         .padding(.vertical, Theme.Spacing.lg)
+        .frame(maxWidth: .infinity, minHeight: height ?? 0, maxHeight: height, alignment: .topLeading)
+        .background(
+            ZStack {
+                let shape = RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                shape.fill(Theme.card)
+                shape.stroke(Theme.cardStroke, lineWidth: 1)
+                watermark
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
+        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .onTapGesture { mode == .header ? onTap?() : copyCode() }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityText)
+        .accessibilityHint(mode == .header ? "Double-tap to reveal code" : "Double-tap to copy")
     }
 
     private var nameRow: some View {
