@@ -60,14 +60,6 @@ struct CardStack: View {
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
-                    } preview: {
-                        TokenCardView(
-                            account: account,
-                            now: now,
-                            mode: .detail,
-                            height: detailHeight
-                        )
-                        .padding(Theme.Spacing.lg)
                     }
                 }
             }
@@ -84,13 +76,9 @@ struct CardStack: View {
     }
 
     private func yOffset(for index: Int, in height: CGFloat) -> CGFloat {
-        guard let selected = selectedIndex else {
-            return topInset + CGFloat(index) * stackStep      // collapsed deck
-        }
-        if index == selected { return topInset }              // pulled out to the top
+        guard let selected = selectedIndex else { return topInset + CGFloat(index) * stackStep }
+        if index == selected { return topInset }
 
-        // Everyone else stacks at the bottom of the screen, each still peeking
-        // `pilePeek` so the name + username row stays visible.
         let j = index < selected ? index : index - 1
         let others = accounts.count - 1
         let pileHeight = CGFloat(max(0, others - 1)) * pilePeek + headerHeight
@@ -110,7 +98,7 @@ struct CardStack: View {
     private var dragToDismiss: some Gesture {
         DragGesture()
             .onChanged { value in
-                dragOffset = max(0, value.translation.height)   // downward only
+                dragOffset = max(0, value.translation.height)
             }
             .onEnded { value in
                 if value.translation.height > 60 {

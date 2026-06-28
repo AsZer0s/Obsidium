@@ -21,13 +21,9 @@ struct TokenCardView: View {
     enum Mode { case header, detail }
 
     let account: Account
-    /// Current time, supplied by the enclosing TimelineView.
     let now: Date
-
     var mode: Mode = .detail
-    /// Exact height set by the stack so the code row clips/reveals predictably.
     var height: CGFloat? = nil
-    /// Pull the card out of the deck (header taps).
     var onTap: (() -> Void)? = nil
 
     @Environment(ToastCenter.self) private var toast
@@ -36,7 +32,6 @@ struct TokenCardView: View {
     private var code: String { TOTPGenerator.code(for: account, at: now) ?? "------" }
     private var hasCode: Bool { code != "------" }
 
-    /// Group the code into two halves for readability, e.g. "652 087".
     private var formattedCode: String {
         guard hasCode, code.count == 6 || code.count == 8 else {
             return hasCode ? code : "— — —"
@@ -50,20 +45,11 @@ struct TokenCardView: View {
     private var hasLabel: Bool { !account.label.isEmpty && account.displayTitle != account.label }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            nameRow
-            // The code slides up into the card as it opens — it travels with
-            // the expansion rather than being statically revealed by a clip.
-            if mode == .detail {
-                codeRow
-                    .padding(.top, Theme.Spacing.md)
-                    .transition(.move(edge: .bottom))
-            }
+        ZStack {
+            cardBackground
+            content
         }
-        .padding(.horizontal, Theme.Spacing.lg)
-        .padding(.vertical, Theme.Spacing.lg)
         .frame(maxWidth: .infinity, minHeight: height ?? 0, maxHeight: height, alignment: .topLeading)
-        .background(cardSurface)
         .compositingGroup()
         .shadow(color: .black.opacity(0.35), radius: 12, y: 6)
         .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
@@ -73,9 +59,29 @@ struct TokenCardView: View {
         .accessibilityHint(mode == .header ? "Double-tap to reveal code" : "Double-tap to copy")
     }
 
-    // MARK: Rows
+    private var cardBackground: some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+        return ZStack {
+            shape.fill(Theme.card)
+            shape.stroke(Theme.cardStroke, lineWidth: 1)
+            watermark
+        }
+        .clipShape(shape)
+    }
 
-    /// Issuer on the left, account name on the right — always visible.
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            nameRow
+            if mode == .detail {
+                codeRow
+                    .padding(.top, Theme.Spacing.md)
+                    .transition(.move(edge: .bottom))
+            }
+        }
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, Theme.Spacing.lg)
+    }
+
     private var nameRow: some View {
         HStack(spacing: Theme.Spacing.md) {
             Text(account.displayTitle)
@@ -93,7 +99,6 @@ struct TokenCardView: View {
         }
     }
 
-    /// The code (hero) and the countdown ring — revealed as the card grows.
     private var codeRow: some View {
         HStack(alignment: .center, spacing: Theme.Spacing.md) {
             Text(formattedCode)
@@ -107,20 +112,6 @@ struct TokenCardView: View {
             Spacer(minLength: Theme.Spacing.sm)
             CountdownRing(progress: progress, secondsRemaining: secondsRemaining)
         }
-    }
-
-    // MARK: Surface
-
-    /// Flat elevated card with a hairline rim and a subtle brand icon watermark
-    /// in the top-left.
-    private var cardSurface: some View {
-        let shape = RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-        return ZStack {
-            shape.fill(Theme.card)
-            shape.stroke(Theme.cardStroke, lineWidth: 1)
-            watermark
-        }
-        .clipShape(shape)
     }
 
     private var selectedBrandIcon: BrandIcon {
