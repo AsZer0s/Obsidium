@@ -55,6 +55,60 @@ extension BrandIcon {
         BrandIcon(id: "aws", name: "AWS", symbol: "cloud.bolt.fill", tint: .orange),
         BrandIcon(id: "amazon-aws", name: "AWS", symbol: "cloud.bolt.fill", tint: .orange),
 
+        // MARK: Chinese Mainland Providers
+        BrandIcon(id: "aliyun", name: "阿里云", symbol: "cloud.fill", tint: .orange),
+        BrandIcon(id: "alicloud", name: "阿里云", symbol: "cloud.fill", tint: .orange),
+        BrandIcon(id: "tencent-cloud", name: "腾讯云", symbol: "cloud.fill", tint: .blue),
+        BrandIcon(id: "tencentcloud", name: "腾讯云", symbol: "cloud.fill", tint: .blue),
+        BrandIcon(id: "huawei-cloud", name: "华为云", symbol: "cloud.fill", tint: .red),
+        BrandIcon(id: "huaweicloud", name: "华为云", symbol: "cloud.fill", tint: .red),
+        BrandIcon(id: "qingcloud", name: "青云", symbol: "cloud.fill", tint: .teal),
+        BrandIcon(id: "ucloud", name: "UCloud", symbol: "cloud.fill", tint: .blue),
+        BrandIcon(id: "kingsoft-cloud", name: "金山云", symbol: "cloud.fill", tint: .yellow),
+        BrandIcon(id: "wangsu", name: "网宿云", symbol: "network", tint: .teal),
+        BrandIcon(id: "qcloud", name: "腾讯云", symbol: "cloud.fill", tint: .blue),
+        BrandIcon(id: "ecloud", name: "天翼云", symbol: "cloud.fill", tint: .teal),
+        BrandIcon(id: "cmcloud", name: "移动云", symbol: "cloud.fill", tint: .green),
+        BrandIcon(id: "unicomcloud", name: "联通云", symbol: "cloud.fill", tint: .red),
+
+        // MARK: Chinese Apps & Services
+        BrandIcon(id: "wechat", name: "微信", symbol: "message.fill", tint: .green),
+        BrandIcon(id: "weixin", name: "微信", symbol: "message.fill", tint: .green),
+        BrandIcon(id: "alipay", name: "支付宝", symbol: "creditcard.fill", tint: .blue),
+        BrandIcon(id: "zhifubao", name: "支付宝", symbol: "creditcard.fill", tint: .blue),
+        BrandIcon(id: "qq", name: "QQ", symbol: "person.badge.key.fill", tint: .teal),
+        BrandIcon(id: "weibo", name: "微博", symbol: "eye.fill", tint: .red),
+        BrandIcon(id: "sina-weibo", name: "新浪微博", symbol: "eye.fill", tint: .red),
+        BrandIcon(id: "taobao", name: "淘宝", symbol: "cart.fill", tint: .orange),
+        BrandIcon(id: "tmall", name: "天猫", symbol: "cat.fill", tint: .red),
+        BrandIcon(id: "jd", name: "京东", symbol: "cart.fill", tint: .red),
+        BrandIcon(id: "pinduoduo", name: "拼多多", symbol: "cart.fill", tint: .orange),
+        BrandIcon(id: "bilibili", name: "哔哩哔哩", symbol: "tv.fill", tint: .pink),
+        BrandIcon(id: "bzhan", name: "哔哩哔哩", symbol: "tv.fill", tint: .pink),
+        BrandIcon(id: "douyin", name: "抖音", symbol: "music.note", tint: .red),
+        BrandIcon(id: "tiktok-cn", name: "抖音", symbol: "music.note", tint: .red),
+        BrandIcon(id: "kuaishou", name: "快手", symbol: "camera.fill", tint: .orange),
+        BrandIcon(id: "zhihu", name: "知乎", symbol: "questionmark.circle.fill", tint: .blue),
+        BrandIcon(id: "dingtalk", name: "钉钉", symbol: "briefcase.fill", tint: .blue),
+        BrandIcon(id: "feishu", name: "飞书", symbol: "briefcase.fill", tint: .blue),
+        BrandIcon(id: "lark", name: "飞书", symbol: "briefcase.fill", tint: .blue),
+        BrandIcon(id: "netease", name: "网易", symbol: "music.note", tint: .red),
+        BrandIcon(id: "163", name: "网易邮箱", symbol: "envelope.fill", tint: .red),
+        BrandIcon(id: "yeahmail", name: "Yeah邮箱", symbol: "envelope.fill", tint: .teal),
+        BrandIcon(id: "vipmail", name: "VIP邮箱", symbol: "envelope.fill", tint: .yellow),
+        BrandIcon(id: "ctrip", name: "携程", symbol: "airplane", tint: .teal),
+        BrandIcon(id: "trip", name: "携程", symbol: "airplane", tint: .teal),
+        BrandIcon(id: "meituan", name: "美团", symbol: "cart.fill", tint: .yellow),
+        BrandIcon(id: "dianping", name: "大众点评", symbol: "star.fill", tint: .orange),
+        BrandIcon(id: "eleme", name: "饿了么", symbol: "fork.knife", tint: .teal),
+        BrandIcon(id: "sogou", name: "搜狗", symbol: "magnifyingglass.circle.fill", tint: .orange),
+        BrandIcon(id: "baidu", name: "百度", symbol: "magnifyingglass.circle.fill", tint: .blue),
+        BrandIcon(id: "baidu-cloud", name: "百度云", symbol: "cloud.fill", tint: .blue),
+        BrandIcon(id: "yunpan", name: "百度网盘", symbol: "tray.full.fill", tint: .blue),
+        BrandIcon(id: "weiyun", name: "微云", symbol: "tray.full.fill", tint: .teal),
+        BrandIcon(id: "126mail", name: "126邮箱", symbol: "envelope.fill", tint: .red),
+        BrandIcon(id: "189mail", name: "189邮箱", symbol: "envelope.fill", tint: .teal),
+
         // MARK: Cloud Providers & Hosting
         BrandIcon(id: "cloudflare", name: "Cloudflare", symbol: "bolt.shield.fill", tint: .orange),
         BrandIcon(id: "vercel", name: "Vercel", symbol: "triangle.fill", tint: .black),
@@ -368,6 +422,45 @@ extension BrandIcon {
         if lower.contains("hover") { return find(id: "hover") }
         if lower.contains("porkbun") { return find(id: "porkbun") }
         if lower.contains("dnsimple") { return find(id: "dnsimple") }
+
+        // Chinese Mainland providers
+        if lower.contains("aliyun") || lower.contains("alicloud") || lower.contains("aliyun.com") { return find(id: "aliyun") }
+        if lower.contains("tencent") || lower.contains("qcloud") || lower.contains("tencentcloud") { return find(id: "tencent-cloud") }
+        if lower.contains("huawei") || lower.contains("huaweicloud") { return find(id: "huawei-cloud") }
+        if lower.contains("qingyun") { return find(id: "qingcloud") }
+        if lower.contains("ucloud") { return find(id: "ucloud") }
+        if lower.contains("kingsoft") || lower.contains("kingsoftcloud") { return find(id: "kingsoft-cloud") }
+        if lower.contains("wangsu") { return find(id: "wangsu") }
+        if lower.contains("ecloud") || lower.contains("tianyi") { return find(id: "ecloud") }
+        if lower.contains("cmcloud") || lower.contains("china mobile") { return find(id: "cmcloud") }
+        if lower.contains("unicom") { return find(id: "unicomcloud") }
+        if lower.contains("wechat") || lower.contains("weixin") { return find(id: "wechat") }
+        if lower.contains("alipay") || lower.contains("zhifubao") { return find(id: "alipay") }
+        if lower.contains("qq.com") || lower.contains("qqmail") { return find(id: "qq") }
+        if lower.contains("weibo") || lower.contains("sina") { return find(id: "weibo") }
+        if lower.contains("taobao") { return find(id: "taobao") }
+        if lower.contains("tmall") { return find(id: "tmall") }
+        if lower.contains("jd.com") || lower.contains("jingdong") { return find(id: "jd") }
+        if lower.contains("pinduoduo") || lower.contains("pdd") { return find(id: "pinduoduo") }
+        if lower.contains("bilibili") || lower.contains("bzhan") { return find(id: "bilibili") }
+        if lower.contains("douyin") { return find(id: "douyin") }
+        if lower.contains("kuaishou") { return find(id: "kuaishou") }
+        if lower.contains("zhihu") { return find(id: "zhihu") }
+        if lower.contains("dingtalk") { return find(id: "dingtalk") }
+        if lower.contains("feishu") || lower.contains("lark") { return find(id: "feishu") }
+        if lower.contains("netease") || lower.contains("163.com") { return find(id: "netease") }
+        if lower.contains("yeahmail") { return find(id: "yeahmail") }
+        if lower.contains("vipmail") { return find(id: "vipmail") }
+        if lower.contains("126.com") { return find(id: "126mail") }
+        if lower.contains("189.com") { return find(id: "189mail") }
+        if lower.contains("ctrip") { return find(id: "ctrip") }
+        if lower.contains("meituan") { return find(id: "meituan") }
+        if lower.contains("dianping") { return find(id: "dianping") }
+        if lower.contains("eleme") { return find(id: "eleme") }
+        if lower.contains("sogou") { return find(id: "sogou") }
+        if lower.contains("baidu") { return find(id: "baidu") }
+        if lower.contains("yunpan") || lower.contains("weiyun") { return find(id: "yunpan") }
+        if lower.contains("baidu-cloud") { return find(id: "baidu-cloud") }
 
         return nil
     }
