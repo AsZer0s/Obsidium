@@ -3,9 +3,9 @@
 //  Obsidium
 //
 //  Apple Wallet–style stacked cards. The navigation title and toolbar stay
-//  fixed; only the card area scrolls. Cards always live in one ScrollView / one
-//  ZStack so expanding a card is a real animated movement from its stacked
-//  position to the top, not a view replacement.
+//  fixed; only the card area scrolls. Collapsed cards overlap into a wallet
+//  stack. Once a card is expanded, that card is pinned outside the ScrollView
+//  while the remaining collapsed pile scrolls underneath.
 //
 //  Card editing, deleting, and reordering live in Settings → Manage Tokens.
 //
@@ -19,7 +19,7 @@ struct CardStack: View {
 
     @State private var selectedID: Account.ID?
     @State private var dragOffset: CGFloat = 0
-    @State private var scrollOffset: CGFloat = 0
+    @Namespace private var cardNamespace
 
     // Geometry of the deck.
     private let headerHeight: CGFloat = 132
@@ -36,71 +36,84 @@ struct CardStack: View {
 
     var body: some View {
         GeometryReader { geo in
+            if let selectedIndex, accounts.indices.contains(selectedIndex) {
+                expandedDeck(selectedIndex: selectedIndex, in: geo.size)
+            } else {
+                collapsedDeck(in: geo.size)
+            }
+        }
+        .animation(spring, value: selectedID)
+    }
+
+    // MARK: Collapsed stack
+
+    private func collapsedDeck(in size: CGSize) -> some View {
+        ScrollView(.vertical) {
+            ZStack(alignment: .top) {
+                ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
+                    card(account: account, isSelected: false)
+                        .matchedGeometryEffect(id: account.id, in: cardNamespace)
+                        .offset(y: collapsedTopInset + CGFloat(index) * stackStep)
+                        .zIndex(Double(index))
+                }
+            }
+            .frame(width: size.width, height: max(size.height, collapsedContentHeight), alignment: .top)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private var collapsedContentHeight: CGFloat {
+        collapsedTopInset + CGFloat(max(accounts.count - 1, 0)) * stackStep + headerHeight + bottomInset
+    }
+
+    // MARK: Expanded stack
+
+    private func expandedDeck(selectedIndex: Int, in size: CGSize) -> some View {
+        let selected = accounts[selectedIndex]
+        let others = accounts.enumerated()
+            .filter { $0.offset != selectedIndex }
+            .map(\.element)
+        let pileTop = expandedPileTop(otherCount: others.count, in: size.height)
+        let pileViewportHeight = max(0, size.height - pileTop)
+
+        return ZStack(alignment: .top) {
             ScrollView(.vertical) {
                 ZStack(alignment: .top) {
-                    ForEach(accounts) { account in
-                        let index = index(of: account)
-                        let isSelected = selectedID == account.id
-                        card(account: account, isSelected: isSelected)
-                            .offset(y: yOffset(for: index, in: geo.size.height) + (isSelected ? selectedPinnedCompensation + dragOffset : 0))
-                            .zIndex(isSelected ? 1000 : Double(index))
-                            .gesture(isSelected ? dragToDismiss : nil)
+                    ForEach(Array(others.enumerated()), id: \.element.id) { index, account in
+                        card(account: account, isSelected: false)
+                            .matchedGeometryEffect(id: account.id, in: cardNamespace)
+                            .offset(y: topInset + CGFloat(index) * pilePeek)
+                            .zIndex(Double(index))
                     }
                 }
-                .frame(width: geo.size.width, height: max(geo.size.height, contentHeight(in: geo.size.height)), alignment: .top)
+                .frame(
+                    width: size.width,
+                    height: max(pileViewportHeight, pileContentHeight(count: others.count)),
+                    alignment: .top
+                )
             }
             .scrollIndicators(.hidden)
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                max(0, geometry.contentOffset.y)
-            } action: { _, newValue in
-                scrollOffset = newValue
-            }
-            .animation(spring, value: selectedID)
+            .frame(width: size.width, height: pileViewportHeight, alignment: .top)
+            .offset(y: pileTop)
+
+            card(account: selected, isSelected: true)
+                .matchedGeometryEffect(id: selected.id, in: cardNamespace)
+                .offset(y: topInset + dragOffset)
+                .zIndex(1000)
+                .gesture(dragToDismiss)
         }
+        .frame(width: size.width, height: size.height, alignment: .top)
     }
 
-    // MARK: Layout
-
-    private var selectedIndex: Int? {
-        guard let id = selectedID else { return nil }
-        return accounts.firstIndex { $0.id == id }
-    }
-
-    private var selectedPinnedCompensation: CGFloat {
-        scrollOffset
-    }
-
-    private func contentHeight(in height: CGFloat) -> CGFloat {
-        guard selectedIndex != nil else {
-            return collapsedTopInset + CGFloat(max(accounts.count - 1, 0)) * stackStep + headerHeight + bottomInset
-        }
-        let others = max(accounts.count - 1, 0)
-        let pileTop = expandedPileTop(in: height)
-        return pileTop + CGFloat(max(others - 1, 0)) * pilePeek + headerHeight + bottomInset
-    }
-
-    private func index(of account: Account) -> Int {
-        accounts.firstIndex { $0.id == account.id } ?? 0
-    }
-
-    private func yOffset(for index: Int, in height: CGFloat) -> CGFloat {
-        guard let selected = selectedIndex else {
-            return collapsedTopInset + CGFloat(index) * stackStep
-        }
-
-        if index == selected { return topInset }
-
-        let pileTop = expandedPileTop(in: height)
-        let j = index < selected ? index : index - 1
-        return pileTop + CGFloat(j) * pilePeek
-    }
-
-    private func expandedPileTop(in height: CGFloat) -> CGFloat {
-        let others = max(accounts.count - 1, 0)
-        let pileHeight = CGFloat(max(others - 1, 0)) * pilePeek + headerHeight
+    private func expandedPileTop(otherCount: Int, in height: CGFloat) -> CGFloat {
+        let pileHeight = CGFloat(max(otherCount - 1, 0)) * pilePeek + headerHeight
         let naturalTop = topInset + detailHeight + gap
         let bottomAlignedTop = height - expandedPileBottomGap - pileHeight
         return max(naturalTop, bottomAlignedTop)
+    }
+
+    private func pileContentHeight(count: Int) -> CGFloat {
+        topInset + CGFloat(max(count - 1, 0)) * pilePeek + headerHeight + bottomInset
     }
 
     // MARK: Card
@@ -117,6 +130,11 @@ struct CardStack: View {
     }
 
     // MARK: Interaction
+
+    private var selectedIndex: Int? {
+        guard let id = selectedID else { return nil }
+        return accounts.firstIndex { $0.id == id }
+    }
 
     private func select(_ id: Account.ID) {
         withAnimation(spring) {
