@@ -22,14 +22,15 @@ struct CardStack: View {
     @State private var scrollOffset: CGFloat = 0
 
     // Geometry of the deck.
-    private let headerHeight: CGFloat = 86
+    private let headerHeight: CGFloat = 132
     private let detailHeight: CGFloat = 148
-    private let stackStep: CGFloat = 70
-    private let pilePeek: CGFloat = 72
+    private let stackStep: CGFloat = 98
+    private let pilePeek: CGFloat = 104
     private let gap: CGFloat = 16
     private let topInset: CGFloat = 8
     private let collapsedTopInset: CGFloat = 42
     private let bottomInset: CGFloat = 32
+    private let expandedPileBottomGap: CGFloat = 5
 
     private var spring: Animation { .spring(response: 0.48, dampingFraction: 0.84) }
 
@@ -46,7 +47,7 @@ struct CardStack: View {
                             .gesture(isSelected ? dragToDismiss : nil)
                     }
                 }
-                .frame(width: geo.size.width, height: max(geo.size.height, contentHeight), alignment: .top)
+                .frame(width: geo.size.width, height: max(geo.size.height, contentHeight(in: geo.size.height)), alignment: .top)
             }
             .scrollIndicators(.hidden)
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
@@ -65,12 +66,12 @@ struct CardStack: View {
         return accounts.firstIndex { $0.id == id }
     }
 
-    private var contentHeight: CGFloat {
+    private func contentHeight(in height: CGFloat) -> CGFloat {
         guard selectedIndex != nil else {
             return collapsedTopInset + CGFloat(max(accounts.count - 1, 0)) * stackStep + headerHeight + bottomInset
         }
         let others = max(accounts.count - 1, 0)
-        let pileTop = topInset + detailHeight + gap
+        let pileTop = expandedPileTop(in: height)
         return pileTop + CGFloat(max(others - 1, 0)) * pilePeek + headerHeight + bottomInset
     }
 
@@ -85,9 +86,17 @@ struct CardStack: View {
 
         if index == selected { return topInset }
 
-        let pileTop = topInset + detailHeight + gap
+        let pileTop = expandedPileTop(in: height)
         let j = index < selected ? index : index - 1
         return pileTop + CGFloat(j) * pilePeek
+    }
+
+    private func expandedPileTop(in height: CGFloat) -> CGFloat {
+        let others = max(accounts.count - 1, 0)
+        let pileHeight = CGFloat(max(others - 1, 0)) * pilePeek + headerHeight
+        let naturalTop = topInset + detailHeight + gap
+        let bottomAlignedTop = height - expandedPileBottomGap - pileHeight
+        return max(naturalTop, bottomAlignedTop)
     }
 
     // MARK: Card

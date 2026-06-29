@@ -9,6 +9,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct TokenListView: View {
     @Environment(VaultStore.self) private var store
@@ -25,15 +26,51 @@ struct TokenListView: View {
     @State private var isLocked = false
     @State private var isAuthenticating = false
 
+    init() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundColor = .clear
+        appearance.shadowColor = .clear
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
+        UINavigationBar.appearance().compactScrollEdgeAppearance = appearance
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 content
             }
-            .toolbar(.hidden, for: .navigationBar)
-            .safeAreaInset(edge: .top) {
-                topBar
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        isSettingsPresented = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                    .tint(Theme.accent)
+                    .accessibilityLabel("Settings")
+                }
+                ToolbarItem(placement: .principal) {
+                    Text("Obsidium")
+                        .font(.headline.weight(.semibold))
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isScannerPresented = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.body.weight(.semibold))
+                    }
+                    .tint(Theme.accent)
+                    .accessibilityLabel("Add token")
+                }
             }
             .fullScreenCover(isPresented: $isScannerPresented) {
                 ScannerScreen()
@@ -76,38 +113,6 @@ struct TokenListView: View {
                 break
             }
         }
-    }
-
-    private var topBar: some View {
-        HStack {
-            Button {
-                isSettingsPresented = true
-            } label: {
-                Label("Settings", systemImage: "gearshape")
-                    .labelStyle(.iconOnly)
-            }
-            .tint(Theme.accent)
-
-            Spacer()
-
-            Text("Obsidium")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(.primary)
-
-            Spacer()
-
-            Button {
-                isScannerPresented = true
-            } label: {
-                Label("Add token", systemImage: "plus")
-                    .labelStyle(.iconOnly)
-                    .font(.body.weight(.semibold))
-            }
-            .tint(Theme.accent)
-        }
-        .padding(.horizontal, Theme.Spacing.lg)
-        .padding(.bottom, Theme.Spacing.sm)
-        .background(Color.clear)
     }
 
     @ViewBuilder
