@@ -31,34 +31,9 @@ struct TokenListView: View {
                 Theme.background.ignoresSafeArea()
                 content
             }
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("Obsidium")
-                        .font(.headline.weight(.semibold))
-                }
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        isSettingsPresented = true
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
-                    .tint(Theme.accent)
-                    .accessibilityLabel("Settings")
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isScannerPresented = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.body.weight(.semibold))
-                    }
-                    .tint(Theme.accent)
-                    .accessibilityLabel("Add token")
-                }
+            .toolbar(.hidden, for: .navigationBar)
+            .safeAreaInset(edge: .top) {
+                topBar
             }
             .fullScreenCover(isPresented: $isScannerPresented) {
                 ScannerScreen()
@@ -101,6 +76,41 @@ struct TokenListView: View {
                 break
             }
         }
+    }
+
+    private var topBar: some View {
+        HStack {
+            Button {
+                isSettingsPresented = true
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.body.weight(.medium))
+                    .frame(width: 44, height: 36)
+            }
+            .tint(Theme.accent)
+            .accessibilityLabel("Settings")
+
+            Spacer()
+
+            Text("Obsidium")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.primary)
+
+            Spacer()
+
+            Button {
+                isScannerPresented = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.body.weight(.semibold))
+                    .frame(width: 44, height: 36)
+            }
+            .tint(Theme.accent)
+            .accessibilityLabel("Add token")
+        }
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.bottom, Theme.Spacing.sm)
+        .background(Color.clear)
     }
 
     @ViewBuilder
