@@ -22,10 +22,10 @@ struct CardStack: View {
     @State private var dragOffset: CGFloat = 0
 
     // Geometry of the deck.
-    private let headerHeight: CGFloat = 66    // collapsed: logo + name/label
-    private let detailHeight: CGFloat = 152   // pulled-out: name + code (slides in)
-    private let stackStep: CGFloat = 52        // visible sliver per stacked card
-    private let pilePeek: CGFloat = 56         // sliver per bottom-pile card —
+    private let headerHeight: CGFloat = 58    // collapsed: name row only
+    private let detailHeight: CGFloat = 140   // pulled-out: name + code (slides in)
+    private let stackStep: CGFloat = 48        // visible sliver per stacked card
+    private let pilePeek: CGFloat = 50         // sliver per bottom-pile card —
                                                // wide enough to keep the name row readable
     private let gap: CGFloat = 16             // min space below the pulled-out card
     private let topInset: CGFloat = 8

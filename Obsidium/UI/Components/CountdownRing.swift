@@ -28,10 +28,6 @@ struct CountdownRing: View {
                 .stroke(strokeColor, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 0.25), value: progress)
-            Text("\(secondsRemaining)")
-                .font(.system(size: 9, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.9))
-                .monospacedDigit()
         }
         .frame(width: size, height: size)
         .accessibilityHidden(true) // the card already announces the code

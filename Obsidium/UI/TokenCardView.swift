@@ -61,15 +61,12 @@ struct TokenCardView: View {
         .padding(.horizontal, Theme.Spacing.lg)
         .padding(.vertical, Theme.Spacing.md)
         .frame(maxWidth: .infinity, minHeight: height ?? 0, maxHeight: height, alignment: .topLeading)
-        .background(cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                .stroke(.white.opacity(0.14), lineWidth: 1)
-        )
-        .shadow(color: brandTint.opacity(0.30), radius: 16, y: 8)
-        .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
-        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .background(cardTint)
+        .glassEffect(.regular.tint(brandTint.opacity(0.55)).interactive(), in: cardShape)
+        .overlay(cardShape.stroke(.white.opacity(0.18), lineWidth: 1))
+        .shadow(color: brandTint.opacity(0.28), radius: 16, y: 8)
+        .shadow(color: .black.opacity(0.30), radius: 6, y: 3)
+        .contentShape(cardShape)
         .onTapGesture { mode == .header ? onTap?() : copyCode() }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
@@ -80,21 +77,18 @@ struct TokenCardView: View {
 
     private var nameRow: some View {
         HStack(spacing: Theme.Spacing.md) {
-            logoChip
-            VStack(alignment: .leading, spacing: 2) {
-                Text(account.displayTitle)
-                    .font(Theme.Typography.issuer)
-                    .foregroundStyle(.white)
+            Text(account.displayTitle)
+                .font(Theme.Typography.issuer)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+            Spacer(minLength: Theme.Spacing.md)
+            if hasLabel {
+                Text(account.label)
+                    .font(Theme.Typography.label)
+                    .foregroundStyle(.white.opacity(0.65))
                     .lineLimit(1)
-                if hasLabel {
-                    Text(account.label)
-                        .font(Theme.Typography.label)
-                        .foregroundStyle(.white.opacity(0.65))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
+                    .truncationMode(.middle)
             }
-            Spacer(minLength: 0)
         }
     }
 
@@ -114,20 +108,11 @@ struct TokenCardView: View {
         }
     }
 
-    /// A crisp brand glyph chip, like a card's printed logo.
-    private var logoChip: some View {
-        Image(systemName: selectedBrandIcon.symbol)
-            .font(.system(size: 18, weight: .semibold))
-            .foregroundStyle(.white)
-            .frame(width: 38, height: 38)
-            .background(.white.opacity(0.18), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .stroke(.white.opacity(0.18), lineWidth: 1)
-            )
-    }
-
     // MARK: Background
+
+    private var cardShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+    }
 
     private var selectedBrandIcon: BrandIcon {
         account.iconID.flatMap { BrandIcon.find(id: $0) }
@@ -135,37 +120,40 @@ struct TokenCardView: View {
             ?? .default
     }
 
-    /// The brand's base colour, lifted off pure black so a gradient can read.
+    /// The brand's base colour, lifted off pure black so the tint can read.
     private var brandTint: Color {
         let tint = selectedBrandIcon.tint ?? Theme.accent
-        return tint.brightness < 0.10 ? Color(white: 0.22) : tint
+        return tint.brightness < 0.10 ? Color(white: 0.28) : tint
     }
 
-    /// A deep, saturated two-stop gradient in the brand colour — light colours
-    /// (white, yellow) are darkened harder so white text always survives.
-    private var cardBackground: some View {
+    /// Translucent layers painted over the Liquid Glass: a faint brand-colour
+    /// wash for identity, the big brand glyph, and a top sheen. Everything is
+    /// low-opacity so the dark backdrop keeps showing through the glass.
+    private var cardTint: some View {
         let tint = brandTint
-        let light = tint.brightness > 0.62
-        let top = tint.mixed(with: .black, amount: light ? 0.50 : 0.26)
-        let bottom = tint.mixed(with: .black, amount: light ? 0.80 : 0.64)
         return ZStack {
-            LinearGradient(colors: [top, bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
+            LinearGradient(
+                colors: [tint.opacity(0.32), tint.opacity(0.14)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
             // Big faint brand glyph, bleeding off the bottom-right corner.
             Image(systemName: selectedBrandIcon.symbol)
                 .font(.system(size: 150, weight: .black))
-                .foregroundStyle(.white.opacity(0.08))
+                .foregroundStyle(.white.opacity(0.10))
                 .rotationEffect(.degrees(-12))
                 .offset(x: 70, y: 36)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                .allowsHitTesting(false)
-            // Soft top sheen for a glossy "pass" finish.
+            // Soft top sheen for a glossy finish.
             LinearGradient(
-                colors: [.white.opacity(0.16), .clear],
+                colors: [.white.opacity(0.18), .clear],
                 startPoint: .top,
                 endPoint: .center
             )
             .blendMode(.overlay)
         }
+        .clipShape(cardShape)
+        .allowsHitTesting(false)
     }
 
     private var accessibilityText: String {
@@ -195,19 +183,5 @@ private extension Color {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a)
         return 0.299 * r + 0.587 * g + 0.114 * b
-    }
-
-    /// Linearly blend toward `other` by `amount` (0 = self, 1 = other).
-    func mixed(with other: Color, amount: CGFloat) -> Color {
-        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
-        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
-        UIColor(self).getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
-        UIColor(other).getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
-        let t = max(0, min(1, amount))
-        return Color(
-            red: Double(r1 + (r2 - r1) * t),
-            green: Double(g1 + (g2 - g1) * t),
-            blue: Double(b1 + (b2 - b1) * t)
-        )
     }
 }
