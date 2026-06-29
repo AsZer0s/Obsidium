@@ -20,12 +20,13 @@ struct CardStack: View {
     @State private var selectedID: Account.ID?
     @State private var dragOffset: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
+    @State private var selectedScrollOffset: CGFloat = 0
 
     // Geometry of the deck.
     private let headerHeight: CGFloat = 132
     private let detailHeight: CGFloat = 148
-    private let stackStep: CGFloat = 98
-    private let pilePeek: CGFloat = 104
+    private let stackStep: CGFloat = 50
+    private let pilePeek: CGFloat = 52
     private let gap: CGFloat = 16
     private let topInset: CGFloat = 8
     private let collapsedTopInset: CGFloat = 42
@@ -42,7 +43,7 @@ struct CardStack: View {
                         let index = index(of: account)
                         let isSelected = selectedID == account.id
                         card(account: account, isSelected: isSelected)
-                            .offset(y: yOffset(for: index, in: geo.size.height) + (isSelected ? scrollOffset + dragOffset : 0))
+                            .offset(y: yOffset(for: index, in: geo.size.height) + (isSelected ? selectedScrollCompensation + dragOffset : 0))
                             .zIndex(isSelected ? 1000 : Double(index))
                             .gesture(isSelected ? dragToDismiss : nil)
                     }
@@ -64,6 +65,10 @@ struct CardStack: View {
     private var selectedIndex: Int? {
         guard let id = selectedID else { return nil }
         return accounts.firstIndex { $0.id == id }
+    }
+
+    private var selectedScrollCompensation: CGFloat {
+        max(0, scrollOffset - selectedScrollOffset)
     }
 
     private func contentHeight(in height: CGFloat) -> CGFloat {
@@ -116,7 +121,13 @@ struct CardStack: View {
 
     private func select(_ id: Account.ID) {
         withAnimation(spring) {
-            selectedID = (selectedID == id) ? nil : id
+            if selectedID == id {
+                selectedID = nil
+                selectedScrollOffset = 0
+            } else {
+                selectedID = id
+                selectedScrollOffset = scrollOffset
+            }
             dragOffset = 0
         }
     }
@@ -130,6 +141,7 @@ struct CardStack: View {
                 if value.translation.height > 60 {
                     withAnimation(spring) {
                         selectedID = nil
+                        selectedScrollOffset = 0
                         dragOffset = 0
                     }
                 } else {
