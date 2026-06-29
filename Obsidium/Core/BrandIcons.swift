@@ -2,322 +2,219 @@
 //  BrandIcons.swift
 //  Obsidium
 //
-//  A curated library of brand icons for common MFA providers (using
-//  SF Symbols that match brand visual cues, with a fallback general set).
-//  Also provides auto-detection from issuer names.
+//  FontAwesome-backed brand icons for MFA providers. The app stores only the
+//  stable `id`; the visible mark is rendered from the bundled Font Awesome 7
+//  OTF fonts. No SF Symbols are used for brand artwork.
 //
 
+import CoreText
 import SwiftUI
 
-/// A brand icon descriptor with ID, display name, symbol, color tint.
+/// One of the bundled Font Awesome font faces.
+enum FontAwesomeStyle: String, Hashable {
+    case brands
+    case solid
+    case regular
+
+    var fontName: String {
+        switch self {
+        case .brands:
+            return "FontAwesome7Brands-Regular"
+        case .solid:
+            return "FontAwesome7Free-Solid"
+        case .regular:
+            return "FontAwesome7Free-Regular"
+        }
+    }
+
+    var fileName: String {
+        switch self {
+        case .brands:
+            return "Font Awesome 7 Brands-Regular-400"
+        case .solid:
+            return "Font Awesome 7 Free-Solid-900"
+        case .regular:
+            return "Font Awesome 7 Free-Regular-400"
+        }
+    }
+}
+
+enum FontAwesome {
+    private static var didRegister = false
+
+    /// Register the bundled OTF fonts for this process. Calling more than once is harmless.
+    static func registerFonts() {
+        guard !didRegister else { return }
+        didRegister = true
+        for style in [FontAwesomeStyle.brands, .solid, .regular] {
+            let fontURL = Bundle.main.url(forResource: style.fileName, withExtension: "otf")
+                ?? Bundle.main.url(forResource: "otfs/\(style.fileName)", withExtension: "otf")
+            guard let fontURL = fontURL else { continue }
+            CTFontManagerRegisterFontsForURL(fontURL as CFURL, .process, nil)
+        }
+    }
+}
+
+/// A FontAwesome icon descriptor with a stable ID, display name, glyph and tint.
 struct BrandIcon: Identifiable, Hashable {
     let id: String
     let name: String
-    let symbol: String
+    let glyph: String
+    let style: FontAwesomeStyle
     let tint: Color?
+}
+
+struct FontAwesomeIconView: View {
+    let icon: BrandIcon
+    var size: CGFloat
+
+    var body: some View {
+        Text(icon.glyph)
+            .font(.custom(icon.style.fontName, size: size))
+            .lineLimit(1)
+            .minimumScaleFactor(0.2)
+            .accessibilityLabel(icon.name)
+    }
 }
 
 extension BrandIcon {
     /// Default icon if none selected.
-    static let `default` = BrandIcon(id: "default", name: "Default", symbol: "lock.shield.fill", tint: Theme.accent)
+    static let `default` = BrandIcon(id: "default", name: "Default", glyph: "\u{f023}", style: .solid, tint: Color(red: 0.40, green: 0.78, blue: 0.92))
 }
 
 extension BrandIcon {
-    /// Full library of available brand icons, grouped by category.
+    /// FontAwesome icon library. Brand entries use the Brands font; generic
+    /// fallback entries use the Free Solid font so every icon still comes from
+    /// FontAwesome.
     static let library: [BrandIcon] = [
         // MARK: Big Tech & Social
-        BrandIcon(id: "github", name: "GitHub", symbol: "chevron.left.forwardslash.chevron.right", tint: .white),
-        BrandIcon(id: "gitlab", name: "GitLab", symbol: "flame.fill", tint: .orange),
-        BrandIcon(id: "bitbucket", name: "Bitbucket", symbol: "circle.hexagongrid.fill", tint: .blue),
-        BrandIcon(id: "google", name: "Google", symbol: "g.circle.fill", tint: .blue),
-        BrandIcon(id: "google-cloud", name: "Google Cloud", symbol: "cloud.square.fill", tint: .blue),
-        BrandIcon(id: "gmail", name: "Gmail", symbol: "envelope.fill", tint: .red),
-        BrandIcon(id: "microsoft", name: "Microsoft", symbol: "squareshape.split.2x2", tint: .blue),
-        BrandIcon(id: "outlook", name: "Outlook", symbol: "envelope.fill", tint: .blue),
-        BrandIcon(id: "azure", name: "Azure", symbol: "square.grid.3x3.fill", tint: .blue),
-        BrandIcon(id: "apple", name: "Apple", symbol: "apple.logo", tint: .black),
-        BrandIcon(id: "apple-id", name: "Apple ID", symbol: "apple.logo", tint: .black),
-        BrandIcon(id: "icloud", name: "iCloud", symbol: "icloud.fill", tint: .blue),
-        BrandIcon(id: "facebook", name: "Facebook", symbol: "f.circle.fill", tint: .blue),
-        BrandIcon(id: "instagram", name: "Instagram", symbol: "camera.aperture", tint: .purple),
-        BrandIcon(id: "whatsapp", name: "WhatsApp", symbol: "phone.bubble.left.fill", tint: .green),
-        BrandIcon(id: "telegram", name: "Telegram", symbol: "paperplane.fill", tint: .blue),
-        BrandIcon(id: "discord", name: "Discord", symbol: "bubble.left.and.bubble.right.fill", tint: .purple),
-        BrandIcon(id: "slack", name: "Slack", symbol: "bubble.left.and.bubble.right.fill", tint: .purple),
-        BrandIcon(id: "twitter", name: "X / Twitter", symbol: "xmark", tint: .black),
-        BrandIcon(id: "x-twitter", name: "X / Twitter", symbol: "xmark", tint: .black),
-        BrandIcon(id: "linkedin", name: "LinkedIn", symbol: "person.2.fill", tint: .blue),
-        BrandIcon(id: "reddit", name: "Reddit", symbol: "alien", tint: .orange),
-        BrandIcon(id: "tiktok", name: "TikTok", symbol: "play.rectangle.fill", tint: .black),
-        BrandIcon(id: "youtube", name: "YouTube", symbol: "play.rectangle.fill", tint: .red),
-        BrandIcon(id: "twitch", name: "Twitch", symbol: "play.rectangle.fill", tint: .purple),
-        BrandIcon(id: "amazon", name: "Amazon", symbol: "a.circle.fill", tint: .orange),
-        BrandIcon(id: "aws", name: "AWS", symbol: "cloud.bolt.fill", tint: .orange),
-        BrandIcon(id: "amazon-aws", name: "AWS", symbol: "cloud.bolt.fill", tint: .orange),
+        BrandIcon(id: "github", name: "GitHub", glyph: "\u{f09b}", style: .brands, tint: .white),
+        BrandIcon(id: "gitlab", name: "GitLab", glyph: "\u{f296}", style: .brands, tint: .orange),
+        BrandIcon(id: "bitbucket", name: "Bitbucket", glyph: "\u{f171}", style: .brands, tint: .blue),
+        BrandIcon(id: "google", name: "Google", glyph: "\u{f1a0}", style: .brands, tint: .blue),
+        BrandIcon(id: "google-cloud", name: "Google Cloud", glyph: "\u{f0c2}", style: .solid, tint: .blue),
+        BrandIcon(id: "gmail", name: "Gmail", glyph: "\u{f0e0}", style: .solid, tint: .red),
+        BrandIcon(id: "microsoft", name: "Microsoft", glyph: "\u{f3ca}", style: .brands, tint: .blue),
+        BrandIcon(id: "outlook", name: "Outlook", glyph: "\u{f0e0}", style: .solid, tint: .blue),
+        BrandIcon(id: "azure", name: "Azure", glyph: "\u{f0c2}", style: .solid, tint: .blue),
+        BrandIcon(id: "apple", name: "Apple", glyph: "\u{f179}", style: .brands, tint: .black),
+        BrandIcon(id: "apple-id", name: "Apple ID", glyph: "\u{f179}", style: .brands, tint: .black),
+        BrandIcon(id: "icloud", name: "iCloud", glyph: "\u{f0c2}", style: .solid, tint: .blue),
+        BrandIcon(id: "facebook", name: "Facebook", glyph: "\u{f09a}", style: .brands, tint: .blue),
+        BrandIcon(id: "instagram", name: "Instagram", glyph: "\u{f16d}", style: .brands, tint: .purple),
+        BrandIcon(id: "whatsapp", name: "WhatsApp", glyph: "\u{f232}", style: .brands, tint: .green),
+        BrandIcon(id: "telegram", name: "Telegram", glyph: "\u{f2c6}", style: .brands, tint: .blue),
+        BrandIcon(id: "discord", name: "Discord", glyph: "\u{f392}", style: .brands, tint: .purple),
+        BrandIcon(id: "slack", name: "Slack", glyph: "\u{f198}", style: .brands, tint: .purple),
+        BrandIcon(id: "twitter", name: "X / Twitter", glyph: "\u{e61f}", style: .brands, tint: .black),
+        BrandIcon(id: "x-twitter", name: "X / Twitter", glyph: "\u{e61f}", style: .brands, tint: .black),
+        BrandIcon(id: "linkedin", name: "LinkedIn", glyph: "\u{f08c}", style: .brands, tint: .blue),
+        BrandIcon(id: "reddit", name: "Reddit", glyph: "\u{f1a1}", style: .brands, tint: .orange),
+        BrandIcon(id: "tiktok", name: "TikTok", glyph: "\u{e07b}", style: .brands, tint: .black),
+        BrandIcon(id: "youtube", name: "YouTube", glyph: "\u{f167}", style: .brands, tint: .red),
+        BrandIcon(id: "twitch", name: "Twitch", glyph: "\u{f1e8}", style: .brands, tint: .purple),
+        BrandIcon(id: "amazon", name: "Amazon", glyph: "\u{f270}", style: .brands, tint: .orange),
+        BrandIcon(id: "aws", name: "AWS", glyph: "\u{f375}", style: .brands, tint: .orange),
+        BrandIcon(id: "amazon-aws", name: "AWS", glyph: "\u{f375}", style: .brands, tint: .orange),
 
-        // MARK: Chinese Mainland Providers
-        BrandIcon(id: "aliyun", name: "阿里云", symbol: "cloud.fill", tint: .orange),
-        BrandIcon(id: "alicloud", name: "阿里云", symbol: "cloud.fill", tint: .orange),
-        BrandIcon(id: "tencent-cloud", name: "腾讯云", symbol: "cloud.fill", tint: .blue),
-        BrandIcon(id: "tencentcloud", name: "腾讯云", symbol: "cloud.fill", tint: .blue),
-        BrandIcon(id: "huawei-cloud", name: "华为云", symbol: "cloud.fill", tint: .red),
-        BrandIcon(id: "huaweicloud", name: "华为云", symbol: "cloud.fill", tint: .red),
-        BrandIcon(id: "qingcloud", name: "青云", symbol: "cloud.fill", tint: .teal),
-        BrandIcon(id: "ucloud", name: "UCloud", symbol: "cloud.fill", tint: .blue),
-        BrandIcon(id: "kingsoft-cloud", name: "金山云", symbol: "cloud.fill", tint: .yellow),
-        BrandIcon(id: "wangsu", name: "网宿云", symbol: "network", tint: .teal),
-        BrandIcon(id: "qcloud", name: "腾讯云", symbol: "cloud.fill", tint: .blue),
-        BrandIcon(id: "ecloud", name: "天翼云", symbol: "cloud.fill", tint: .teal),
-        BrandIcon(id: "cmcloud", name: "移动云", symbol: "cloud.fill", tint: .green),
-        BrandIcon(id: "unicomcloud", name: "联通云", symbol: "cloud.fill", tint: .red),
+        // MARK: Chinese Mainland Providers & Apps
+        BrandIcon(id: "aliyun", name: "阿里云", glyph: "\u{f0c2}", style: .solid, tint: .orange),
+        BrandIcon(id: "alicloud", name: "阿里云", glyph: "\u{f0c2}", style: .solid, tint: .orange),
+        BrandIcon(id: "tencent-cloud", name: "腾讯云", glyph: "\u{f0c2}", style: .solid, tint: .blue),
+        BrandIcon(id: "tencentcloud", name: "腾讯云", glyph: "\u{f0c2}", style: .solid, tint: .blue),
+        BrandIcon(id: "huawei-cloud", name: "华为云", glyph: "\u{f0c2}", style: .solid, tint: .red),
+        BrandIcon(id: "huaweicloud", name: "华为云", glyph: "\u{f0c2}", style: .solid, tint: .red),
+        BrandIcon(id: "wechat", name: "微信", glyph: "\u{f1d7}", style: .brands, tint: .green),
+        BrandIcon(id: "weixin", name: "微信", glyph: "\u{f1d7}", style: .brands, tint: .green),
+        BrandIcon(id: "alipay", name: "支付宝", glyph: "\u{f642}", style: .brands, tint: .blue),
+        BrandIcon(id: "zhifubao", name: "支付宝", glyph: "\u{f642}", style: .brands, tint: .blue),
+        BrandIcon(id: "qq", name: "QQ", glyph: "\u{f1d6}", style: .brands, tint: .teal),
+        BrandIcon(id: "weibo", name: "微博", glyph: "\u{f18a}", style: .brands, tint: .red),
+        BrandIcon(id: "sina-weibo", name: "新浪微博", glyph: "\u{f18a}", style: .brands, tint: .red),
+        BrandIcon(id: "taobao", name: "淘宝", glyph: "\u{f07a}", style: .solid, tint: .orange),
+        BrandIcon(id: "tmall", name: "天猫", glyph: "\u{f07a}", style: .solid, tint: .red),
+        BrandIcon(id: "jd", name: "京东", glyph: "\u{f07a}", style: .solid, tint: .red),
+        BrandIcon(id: "pinduoduo", name: "拼多多", glyph: "\u{f07a}", style: .solid, tint: .orange),
+        BrandIcon(id: "bilibili", name: "哔哩哔哩", glyph: "\u{f26c}", style: .solid, tint: .pink),
+        BrandIcon(id: "bzhan", name: "哔哩哔哩", glyph: "\u{f26c}", style: .solid, tint: .pink),
+        BrandIcon(id: "douyin", name: "抖音", glyph: "\u{e07b}", style: .brands, tint: .red),
+        BrandIcon(id: "tiktok-cn", name: "抖音", glyph: "\u{e07b}", style: .brands, tint: .red),
+        BrandIcon(id: "kuaishou", name: "快手", glyph: "\u{f030}", style: .solid, tint: .orange),
+        BrandIcon(id: "zhihu", name: "知乎", glyph: "\u{f63f}", style: .brands, tint: .blue),
+        BrandIcon(id: "dingtalk", name: "钉钉", glyph: "\u{f0b1}", style: .solid, tint: .blue),
+        BrandIcon(id: "feishu", name: "飞书", glyph: "\u{f0b1}", style: .solid, tint: .blue),
+        BrandIcon(id: "lark", name: "飞书", glyph: "\u{f0b1}", style: .solid, tint: .blue),
+        BrandIcon(id: "netease", name: "网易", glyph: "\u{f001}", style: .solid, tint: .red),
+        BrandIcon(id: "163", name: "网易邮箱", glyph: "\u{f0e0}", style: .solid, tint: .red),
+        BrandIcon(id: "126mail", name: "126邮箱", glyph: "\u{f0e0}", style: .solid, tint: .red),
+        BrandIcon(id: "189mail", name: "189邮箱", glyph: "\u{f0e0}", style: .solid, tint: .teal),
+        BrandIcon(id: "baidu", name: "百度", glyph: "\u{f002}", style: .solid, tint: .blue),
+        BrandIcon(id: "baidu-cloud", name: "百度云", glyph: "\u{f0c2}", style: .solid, tint: .blue),
 
-        // MARK: Chinese Apps & Services
-        BrandIcon(id: "wechat", name: "微信", symbol: "message.fill", tint: .green),
-        BrandIcon(id: "weixin", name: "微信", symbol: "message.fill", tint: .green),
-        BrandIcon(id: "alipay", name: "支付宝", symbol: "creditcard.fill", tint: .blue),
-        BrandIcon(id: "zhifubao", name: "支付宝", symbol: "creditcard.fill", tint: .blue),
-        BrandIcon(id: "qq", name: "QQ", symbol: "person.badge.key.fill", tint: .teal),
-        BrandIcon(id: "weibo", name: "微博", symbol: "eye.fill", tint: .red),
-        BrandIcon(id: "sina-weibo", name: "新浪微博", symbol: "eye.fill", tint: .red),
-        BrandIcon(id: "taobao", name: "淘宝", symbol: "cart.fill", tint: .orange),
-        BrandIcon(id: "tmall", name: "天猫", symbol: "cat.fill", tint: .red),
-        BrandIcon(id: "jd", name: "京东", symbol: "cart.fill", tint: .red),
-        BrandIcon(id: "pinduoduo", name: "拼多多", symbol: "cart.fill", tint: .orange),
-        BrandIcon(id: "bilibili", name: "哔哩哔哩", symbol: "tv.fill", tint: .pink),
-        BrandIcon(id: "bzhan", name: "哔哩哔哩", symbol: "tv.fill", tint: .pink),
-        BrandIcon(id: "douyin", name: "抖音", symbol: "music.note", tint: .red),
-        BrandIcon(id: "tiktok-cn", name: "抖音", symbol: "music.note", tint: .red),
-        BrandIcon(id: "kuaishou", name: "快手", symbol: "camera.fill", tint: .orange),
-        BrandIcon(id: "zhihu", name: "知乎", symbol: "questionmark.circle.fill", tint: .blue),
-        BrandIcon(id: "dingtalk", name: "钉钉", symbol: "briefcase.fill", tint: .blue),
-        BrandIcon(id: "feishu", name: "飞书", symbol: "briefcase.fill", tint: .blue),
-        BrandIcon(id: "lark", name: "飞书", symbol: "briefcase.fill", tint: .blue),
-        BrandIcon(id: "netease", name: "网易", symbol: "music.note", tint: .red),
-        BrandIcon(id: "163", name: "网易邮箱", symbol: "envelope.fill", tint: .red),
-        BrandIcon(id: "yeahmail", name: "Yeah邮箱", symbol: "envelope.fill", tint: .teal),
-        BrandIcon(id: "vipmail", name: "VIP邮箱", symbol: "envelope.fill", tint: .yellow),
-        BrandIcon(id: "ctrip", name: "携程", symbol: "airplane", tint: .teal),
-        BrandIcon(id: "trip", name: "携程", symbol: "airplane", tint: .teal),
-        BrandIcon(id: "meituan", name: "美团", symbol: "cart.fill", tint: .yellow),
-        BrandIcon(id: "dianping", name: "大众点评", symbol: "star.fill", tint: .orange),
-        BrandIcon(id: "eleme", name: "饿了么", symbol: "fork.knife", tint: .teal),
-        BrandIcon(id: "sogou", name: "搜狗", symbol: "magnifyingglass.circle.fill", tint: .orange),
-        BrandIcon(id: "baidu", name: "百度", symbol: "magnifyingglass.circle.fill", tint: .blue),
-        BrandIcon(id: "baidu-cloud", name: "百度云", symbol: "cloud.fill", tint: .blue),
-        BrandIcon(id: "yunpan", name: "百度网盘", symbol: "tray.full.fill", tint: .blue),
-        BrandIcon(id: "weiyun", name: "微云", symbol: "tray.full.fill", tint: .teal),
-        BrandIcon(id: "126mail", name: "126邮箱", symbol: "envelope.fill", tint: .red),
-        BrandIcon(id: "189mail", name: "189邮箱", symbol: "envelope.fill", tint: .teal),
+        // MARK: Cloud / Dev Tools / SaaS
+        BrandIcon(id: "cloudflare", name: "Cloudflare", glyph: "\u{e07d}", style: .brands, tint: .orange),
+        BrandIcon(id: "vercel", name: "Vercel", glyph: "\u{f04b}", style: .solid, tint: .black),
+        BrandIcon(id: "netlify", name: "Netlify", glyph: "\u{f0e8}", style: .solid, tint: .teal),
+        BrandIcon(id: "heroku", name: "Heroku", glyph: "\u{f0c2}", style: .solid, tint: .purple),
+        BrandIcon(id: "digitalocean", name: "DigitalOcean", glyph: "\u{f391}", style: .brands, tint: .blue),
+        BrandIcon(id: "linode", name: "Linode", glyph: "\u{f233}", style: .solid, tint: .blue),
+        BrandIcon(id: "docker", name: "Docker", glyph: "\u{f395}", style: .brands, tint: .blue),
+        BrandIcon(id: "notion", name: "Notion", glyph: "\u{f15c}", style: .solid, tint: .black),
+        BrandIcon(id: "figma", name: "Figma", glyph: "\u{f799}", style: .brands, tint: .purple),
+        BrandIcon(id: "linear", name: "Linear", glyph: "\u{f058}", style: .solid, tint: .purple),
+        BrandIcon(id: "asana", name: "Asana", glyph: "\u{f058}", style: .solid, tint: .red),
+        BrandIcon(id: "jira", name: "Jira", glyph: "\u{f7b1}", style: .brands, tint: .blue),
+        BrandIcon(id: "trello", name: "Trello", glyph: "\u{f181}", style: .brands, tint: .blue),
+        BrandIcon(id: "zoom", name: "Zoom", glyph: "\u{f03d}", style: .solid, tint: .blue),
+        BrandIcon(id: "teams", name: "Microsoft Teams", glyph: "\u{f3ca}", style: .brands, tint: .purple),
+        BrandIcon(id: "meet", name: "Google Meet", glyph: "\u{f03d}", style: .solid, tint: .green),
+        BrandIcon(id: "dropbox", name: "Dropbox", glyph: "\u{f16b}", style: .brands, tint: .blue),
+        BrandIcon(id: "onedrive", name: "OneDrive", glyph: "\u{f0c2}", style: .solid, tint: .blue),
+        BrandIcon(id: "googledrive", name: "Google Drive", glyph: "\u{f3aa}", style: .brands, tint: .green),
+        BrandIcon(id: "proton", name: "ProtonMail", glyph: "\u{f0e0}", style: .solid, tint: .purple),
+        BrandIcon(id: "protonmail", name: "ProtonMail", glyph: "\u{f0e0}", style: .solid, tint: .purple),
+        BrandIcon(id: "stackoverflow", name: "Stack Overflow", glyph: "\u{f16c}", style: .brands, tint: .orange),
 
-        // MARK: Cloud Providers & Hosting
-        BrandIcon(id: "cloudflare", name: "Cloudflare", symbol: "bolt.shield.fill", tint: .orange),
-        BrandIcon(id: "vercel", name: "Vercel", symbol: "triangle.fill", tint: .black),
-        BrandIcon(id: "netlify", name: "Netlify", symbol: "network", tint: .teal),
-        BrandIcon(id: "heroku", name: "Heroku", symbol: "leaf.fill", tint: .purple),
-        BrandIcon(id: "digitalocean", name: "DigitalOcean", symbol: "drop.fill", tint: .blue),
-        BrandIcon(id: "linode", name: "Linode", symbol: "server.rack", tint: .blue),
-        BrandIcon(id: "vultr", name: "Vultr", symbol: "network", tint: .teal),
-        BrandIcon(id: "hetzner", name: "Hetzner", symbol: "server.rack", tint: .orange),
-        BrandIcon(id: "ovh", name: "OVH", symbol: "server.rack", tint: .blue),
-        BrandIcon(id: "scaleway", name: "Scaleway", symbol: "scale.3d", tint: .yellow),
-        BrandIcon(id: "render", name: "Render", symbol: "play.rectangle.fill", tint: .teal),
-        BrandIcon(id: "flyio", name: "Fly.io", symbol: "paperplane.fill", tint: .indigo),
-        BrandIcon(id: "railway", name: "Railway", symbol: "train.side.front.car", tint: .purple),
-        BrandIcon(id: "supabase", name: "Supabase", symbol: "circle.and.line.horizontal", tint: .green),
-        BrandIcon(id: "firebase", name: "Firebase", symbol: "flame.fill", tint: .orange),
-        BrandIcon(id: "planetscale", name: "PlanetScale", symbol: "circle.hexagongrid.fill", tint: .blue),
-        BrandIcon(id: "neon", name: "Neon", symbol: "glow", tint: .green),
-        BrandIcon(id: "turso", name: "Turso", symbol: "globe.americas.fill", tint: .purple),
-        BrandIcon(id: "supabase", name: "Supabase", symbol: "circle.and.line.horizontal", tint: .green),
-        BrandIcon(id: "surrealdb", name: "SurrealDB", symbol: "globe.europe.fill", tint: .blue),
-        BrandIcon(id: "mongodb", name: "MongoDB", symbol: "leaf.fill", tint: .green),
-        BrandIcon(id: "mongodb", name: "MongoDB Atlas", symbol: "leaf.fill", tint: .green),
-        BrandIcon(id: "postgresql", name: "PostgreSQL", symbol: "tray.full.fill", tint: .blue),
-        BrandIcon(id: "mysql", name: "MySQL", symbol: "tray.full.fill", tint: .orange),
-        BrandIcon(id: "cockroachdb", name: "CockroachDB", symbol: "ant.fill", tint: .red),
-        BrandIcon(id: "redis", name: "Redis", symbol: "cube.fill", tint: .red),
-        BrandIcon(id: "elasticsearch", name: "Elasticsearch", symbol: "magnifyingglass.circle.fill", tint: .blue),
-        BrandIcon(id: "kibana", name: "Kibana", symbol: "magnifyingglass.circle.fill", tint: .blue),
+        // MARK: Security / Finance / Gaming
+        BrandIcon(id: "auth0", name: "Auth0", glyph: "\u{f3ed}", style: .solid, tint: .orange),
+        BrandIcon(id: "okta", name: "Okta", glyph: "\u{f084}", style: .solid, tint: .blue),
+        BrandIcon(id: "onepassword", name: "1Password", glyph: "\u{f084}", style: .solid, tint: .blue),
+        BrandIcon(id: "bitwarden", name: "Bitwarden", glyph: "\u{f3ed}", style: .solid, tint: .blue),
+        BrandIcon(id: "lastpass", name: "LastPass", glyph: "\u{f084}", style: .solid, tint: .red),
+        BrandIcon(id: "stripe", name: "Stripe", glyph: "\u{f429}", style: .brands, tint: .indigo),
+        BrandIcon(id: "paypal", name: "PayPal", glyph: "\u{f1ed}", style: .brands, tint: .blue),
+        BrandIcon(id: "coinbase", name: "Coinbase", glyph: "\u{f379}", style: .brands, tint: .blue),
+        BrandIcon(id: "bitcoin", name: "Bitcoin", glyph: "\u{f379}", style: .brands, tint: .orange),
+        BrandIcon(id: "ethereum", name: "Ethereum", glyph: "\u{f42e}", style: .brands, tint: .purple),
+        BrandIcon(id: "steam", name: "Steam", glyph: "\u{f1b6}", style: .brands, tint: .black),
+        BrandIcon(id: "epic", name: "Epic Games", glyph: "\u{f11b}", style: .solid, tint: .white),
+        BrandIcon(id: "riot", name: "Riot Games", glyph: "\u{f06d}", style: .solid, tint: .red),
+        BrandIcon(id: "nintendo", name: "Nintendo", glyph: "\u{f11b}", style: .solid, tint: .red),
+        BrandIcon(id: "playstation", name: "PlayStation", glyph: "\u{f3df}", style: .brands, tint: .blue),
+        BrandIcon(id: "xbox", name: "Xbox", glyph: "\u{f412}", style: .brands, tint: .green),
 
-        // MARK: CDNs & Edge
-        BrandIcon(id: "cloudflare", name: "Cloudflare", symbol: "bolt.shield.fill", tint: .orange),
-        BrandIcon(id: "fastly", name: "Fastly", symbol: "bolt.fill", tint: .red),
-        BrandIcon(id: "akamai", name: "Akamai", symbol: "globe.americas.fill", tint: .red),
-        BrandIcon(id: "vercel-edge", name: "Vercel Edge", symbol: "triangle.fill", tint: .black),
-        BrandIcon(id: "netlify-edge", name: "Netlify Edge", symbol: "network", tint: .teal),
-
-        // MARK: Dev Tools & SaaS
-        BrandIcon(id: "notion", name: "Notion", symbol: "doc.plaintext.fill", tint: .black),
-        BrandIcon(id: "figma", name: "Figma", symbol: "figure.2.circle", tint: .purple),
-        BrandIcon(id: "linear", name: "Linear", symbol: "circle.and.line.horizontal", tint: .purple),
-        BrandIcon(id: "asana", name: "Asana", symbol: "checkmark.circle.fill", tint: .red),
-        BrandIcon(id: "jira", name: "Jira", symbol: "tray.full.fill", tint: .blue),
-        BrandIcon(id: "trello", name: "Trello", symbol: "square.grid.3x3.fill", tint: .blue),
-        BrandIcon(id: "slack", name: "Slack", symbol: "bubble.left.and.bubble.right.fill", tint: .purple),
-        BrandIcon(id: "discord", name: "Discord", symbol: "bubble.left.and.bubble.right.fill", tint: .purple),
-        BrandIcon(id: "zoom", name: "Zoom", symbol: "video.fill", tint: .blue),
-        BrandIcon(id: "teams", name: "Microsoft Teams", symbol: "bubble.left.and.bubble.right.fill", tint: .purple),
-        BrandIcon(id: "meet", name: "Google Meet", symbol: "video.fill", tint: .green),
-        BrandIcon(id: "dropbox", name: "Dropbox", symbol: "square.and.arrow.up.on.square.fill", tint: .blue),
-        BrandIcon(id: "box", name: "Box", symbol: "cube.fill", tint: .blue),
-        BrandIcon(id: "onedrive", name: "OneDrive", symbol: "tray.full.fill", tint: .blue),
-        BrandIcon(id: "googledrive", name: "Google Drive", symbol: "square.grid.3x3.fill", tint: .green),
-        BrandIcon(id: "pcloud", name: "pCloud", symbol: "cloud.fill", tint: .blue),
-        BrandIcon(id: "proton-drive", name: "Proton Drive", symbol: "tray.full.fill", tint: .purple),
-        BrandIcon(id: "obsidian", name: "Obsidian", symbol: "doc.text.image.fill", tint: .purple),
-
-        // MARK: Email Providers
-        BrandIcon(id: "gmail", name: "Gmail", symbol: "envelope.fill", tint: .red),
-        BrandIcon(id: "googlemail", name: "Google Mail", symbol: "envelope.fill", tint: .red),
-        BrandIcon(id: "outlook", name: "Outlook", symbol: "envelope.fill", tint: .blue),
-        BrandIcon(id: "hotmail", name: "Hotmail", symbol: "envelope.fill", tint: .orange),
-        BrandIcon(id: "livemail", name: "Live Mail", symbol: "envelope.fill", tint: .blue),
-        BrandIcon(id: "proton", name: "ProtonMail", symbol: "envelope.badge.shield.half.filled", tint: .purple),
-        BrandIcon(id: "protonmail", name: "ProtonMail", symbol: "envelope.badge.shield.half.filled", tint: .purple),
-        BrandIcon(id: "tutanota", name: "Tutanota", symbol: "tray.full.fill", tint: .red),
-        BrandIcon(id: "tuta", name: "Tuta", symbol: "tray.full.fill", tint: .red),
-        BrandIcon(id: "fastmail", name: "Fastmail", symbol: "envelope.badge.fill", tint: .blue),
-        BrandIcon(id: "hey", name: "Hey", symbol: "hand.thumbsup.fill", tint: .blue),
-        BrandIcon(id: "icloud-mail", name: "iCloud Mail", symbol: "icloud.fill", tint: .blue),
-        BrandIcon(id: "zoho-mail", name: "Zoho Mail", symbol: "envelope.fill", tint: .orange),
-        BrandIcon(id: "yandex", name: "Yandex Mail", symbol: "envelope.fill", tint: .red),
-        BrandIcon(id: "mailfence", name: "Mailfence", symbol: "envelope.shield.fill", tint: .teal),
-        BrandIcon(id: "mailbox", name: "Mailbox", symbol: "mailbox.fill", tint: .blue),
-
-        // MARK: Forums & Communities
-        BrandIcon(id: "reddit", name: "Reddit", symbol: "alien", tint: .orange),
-        BrandIcon(id: "stackoverflow", name: "Stack Overflow", symbol: "paperclip.fill", tint: .orange),
-        BrandIcon(id: "stackoverflow", name: "Stack Overflow", symbol: "doc.on.doc.fill", tint: .orange),
-        BrandIcon(id: "github-discussions", name: "GitHub Discussions", symbol: "bubble.left.and.bubble.right.fill", tint: .white),
-        BrandIcon(id: "discourse", name: "Discourse", symbol: "bubble.left.and.bubble.right.fill", tint: .teal),
-        BrandIcon(id: "phpbb", name: "phpBB", symbol: "bubble.left.and.bubble.right.fill", tint: .purple),
-        BrandIcon(id: "nodebb", name: "NodeBB", symbol: "bubble.left.and.bubble.right.fill", tint: .green),
-        BrandIcon(id: "discord-forum", name: "Discord Forum", symbol: "bubble.left.and.bubble.right.fill", tint: .purple),
-        BrandIcon(id: "patreon", name: "Patreon", symbol: "person.fill", tint: .orange),
-        BrandIcon(id: "kofi", name: "Ko-fi", symbol: "cup.and.saucer.fill", tint: .yellow),
-        BrandIcon(id: "discord-community", name: "Discord Community", symbol: "bubble.left.and.bubble.right.fill", tint: .purple),
-
-        // MARK: Security & Auth
-        BrandIcon(id: "auth0", name: "Auth0", symbol: "checkmark.shield.fill", tint: .orange),
-        BrandIcon(id: "okta", name: "Okta", symbol: "key.keychain.fill", tint: .blue),
-        BrandIcon(id: "onepassword", name: "1Password", symbol: "key.fill", tint: .blue),
-        BrandIcon(id: "bitwarden", name: "Bitwarden", symbol: "lock.shield.fill", tint: .blue),
-        BrandIcon(id: "lastpass", name: "LastPass", symbol: "key.keychain.fill", tint: .red),
-        BrandIcon(id: "dashlane", name: "Dashlane", symbol: "lock.fill", tint: .teal),
-        BrandIcon(id: "authy", name: "Authy", symbol: "checkmark.shield.fill", tint: .orange),
-        BrandIcon(id: "duo", name: "Duo Security", symbol: "person.badge.shield.checkmark.fill", tint: .green),
-        BrandIcon(id: "microsoft-authenticator", name: "Microsoft Authenticator", symbol: "lock.shield.fill", tint: .blue),
-        BrandIcon(id: "google-authenticator", name: "Google Authenticator", symbol: "lock.shield.fill", tint: .blue),
-        BrandIcon(id: "andotp", name: "andOTP", symbol: "lock.fill", tint: .green),
-        BrandIcon(id: "authenticator-pro", name: "Authenticator Pro", symbol: "lock.shield.fill", tint: .blue),
-
-        // MARK: Finance & Payments
-        BrandIcon(id: "stripe", name: "Stripe", symbol: "squareshape.on.squareshape.dashed", tint: .indigo),
-        BrandIcon(id: "paypal", name: "PayPal", symbol: "creditcard.fill", tint: .blue),
-        BrandIcon(id: "coinbase", name: "Coinbase", symbol: "bitcoinsign.circle.fill", tint: .blue),
-        BrandIcon(id: "binance", name: "Binance", symbol: "circle.lefthalf.filled", tint: .yellow),
-        BrandIcon(id: "kraken", name: "Kraken", symbol: "circle.hexagongrid.fill", tint: .purple),
-        BrandIcon(id: "gemini", name: "Gemini", symbol: "atom", tint: .teal),
-        BrandIcon(id: "coinlist", name: "CoinList", symbol: "list.bullet", tint: .green),
-        BrandIcon(id: "ledger", name: "Ledger", symbol: "shield.lefthalf.filled", tint: .purple),
-        BrandIcon(id: "trezor", name: "Trezor", symbol: "lock.shield.fill", tint: .green),
-        BrandIcon(id: "metamask", name: "MetaMask", symbol: "fox.fill", tint: .orange),
-        BrandIcon(id: "brave", name: "Brave", symbol: "leopard.fill", tint: .orange),
-        BrandIcon(id: "wise", name: "Wise", symbol: "tray.full.fill", tint: .teal),
-        BrandIcon(id: "revolut", name: "Revolut", symbol: "creditcard.fill", tint: .yellow),
-        BrandIcon(id: "transferwise", name: "Wise (TransferWise)", symbol: "tray.full.fill", tint: .teal),
-        BrandIcon(id: "squirrel", name: "Squirrel", symbol: "squirrel.fill", tint: .orange),
-
-        // MARK: Gaming & Entertainment
-        BrandIcon(id: "steam", name: "Steam", symbol: "gamecontroller.fill", tint: .black),
-        BrandIcon(id: "epic", name: "Epic Games", symbol: "gamecontroller.fill", tint: .white),
-        BrandIcon(id: "riot", name: "Riot Games", symbol: "flame.fill", tint: .red),
-        BrandIcon(id: "nintendo", name: "Nintendo", symbol: "gamecontroller.fill", tint: .red),
-        BrandIcon(id: "playstation", name: "PlayStation", symbol: "playstation.logosymbol", tint: .blue),
-        BrandIcon(id: "sony", name: "PlayStation", symbol: "playstation.logosymbol", tint: .blue),
-        BrandIcon(id: "xbox", name: "Xbox", symbol: "xbox.logosymbol", tint: .green),
-        BrandIcon(id: "battle.net", name: "Battle.net", symbol: "gamecontroller.fill", tint: .blue),
-        BrandIcon(id: "ubisoft", name: "Ubisoft", symbol: "gamecontroller.fill", tint: .blue),
-        BrandIcon(id: "ea", name: "EA", symbol: "gamecontroller.fill", tint: .orange),
-        BrandIcon(id: "rockstar", name: "Rockstar Games", symbol: "star.fill", tint: .yellow),
-        BrandIcon(id: "origin", name: "Origin", symbol: "gamecontroller.fill", tint: .orange),
-        BrandIcon(id: "uplay", name: "Ubisoft Connect", symbol: "gamecontroller.fill", tint: .blue),
-        BrandIcon(id: "epic-games", name: "Epic Games Store", symbol: "gamecontroller.fill", tint: .white),
-        BrandIcon(id: "gog", name: "GOG Galaxy", symbol: "gamecontroller.fill", tint: .purple),
-        BrandIcon(id: "itch", name: "itch.io", symbol: "gamecontroller.fill", tint: .yellow),
-
-        // MARK: Infrastructure & PaaS
-        BrandIcon(id: "aws", name: "AWS", symbol: "cloud.bolt.fill", tint: .orange),
-        BrandIcon(id: "aws-iam", name: "AWS IAM", symbol: "person.badge.key.fill", tint: .orange),
-        BrandIcon(id: "gcp", name: "Google Cloud", symbol: "cloud.square.fill", tint: .blue),
-        BrandIcon(id: "google-cloud", name: "Google Cloud Platform", symbol: "cloud.square.fill", tint: .blue),
-        BrandIcon(id: "azure", name: "Azure", symbol: "square.grid.3x3.fill", tint: .blue),
-        BrandIcon(id: "digitalocean", name: "DigitalOcean", symbol: "drop.fill", tint: .blue),
-        BrandIcon(id: "heroku", name: "Heroku", symbol: "leaf.fill", tint: .purple),
-        BrandIcon(id: "vercel", name: "Vercel", symbol: "triangle.fill", tint: .black),
-        BrandIcon(id: "netlify", name: "Netlify", symbol: "network", tint: .teal),
-        BrandIcon(id: "render", name: "Render", symbol: "play.rectangle.fill", tint: .teal),
-        BrandIcon(id: "flyio", name: "Fly.io", symbol: "paperplane.fill", tint: .indigo),
-        BrandIcon(id: "railway", name: "Railway", symbol: "train.side.front.car", tint: .purple),
-        BrandIcon(id: "planetscale", name: "PlanetScale", symbol: "circle.hexagongrid.fill", tint: .blue),
-        BrandIcon(id: "supabase", name: "Supabase", symbol: "circle.and.line.horizontal", tint: .green),
-        BrandIcon(id: "firebase", name: "Firebase", symbol: "flame.fill", tint: .orange),
-        BrandIcon(id: "cloudflare", name: "Cloudflare", symbol: "bolt.shield.fill", tint: .orange),
-        BrandIcon(id: "vercel-edge", name: "Vercel Edge", symbol: "triangle.fill", tint: .black),
-        BrandIcon(id: "netlify-edge", name: "Netlify Edge", symbol: "network", tint: .teal),
-        BrandIcon(id: "workers", name: "Cloudflare Workers", symbol: "wrench.and.screwdriver.fill", tint: .orange),
-        BrandIcon(id: "deno-deploy", name: "Deno Deploy", symbol: "tray.full.fill", tint: .blue),
-        BrandIcon(id: "deno", name: "Deno", symbol: "tray.full.fill", tint: .blue),
-        BrandIcon(id: "vercel", name: "Vercel", symbol: "triangle.fill", tint: .black),
-        BrandIcon(id: "netlify", name: "Netlify", symbol: "network", tint: .teal),
-
-        // MARK: Code & CI
-        BrandIcon(id: "github", name: "GitHub", symbol: "chevron.left.forwardslash.chevron.right", tint: .white),
-        BrandIcon(id: "gitlab", name: "GitLab", symbol: "flame.fill", tint: .orange),
-        BrandIcon(id: "bitbucket", name: "Bitbucket", symbol: "circle.hexagongrid.fill", tint: .blue),
-        BrandIcon(id: "git", name: "Git", symbol: "point.3.connected.trianglepath", tint: .orange),
-        BrandIcon(id: "circleci", name: "CircleCI", symbol: "circle.circle.fill", tint: .teal),
-        BrandIcon(id: "travis", name: "Travis CI", symbol: "tray.full.fill", tint: .green),
-        BrandIcon(id: "github-actions", name: "GitHub Actions", symbol: "chevron.left.forwardslash.chevron.right", tint: .white),
-        BrandIcon(id: "gitlab-ci", name: "GitLab CI", symbol: "flame.fill", tint: .orange),
-        BrandIcon(id: "jenkins", name: "Jenkins", symbol: "person.and.background.dotted", tint: .red),
-        BrandIcon(id: "buildkite", name: "Buildkite", symbol: "hammer.fill", tint: .purple),
-        BrandIcon(id: "sentry", name: "Sentry", symbol: "exclamationmark.shield.fill", tint: .red),
-        BrandIcon(id: "datadog", name: "Datadog", symbol: "chart.bar.xaxis", tint: .purple),
-        BrandIcon(id: "new-relic", name: "New Relic", symbol: "chart.bar.xaxis", tint: .teal),
-
-        // MARK: Package & Dependency
-        BrandIcon(id: "npmjs", name: "npm", symbol: "cube.fill", tint: .red),
-        BrandIcon(id: "pypi", name: "PyPI", symbol: "tray.full.fill", tint: .blue),
-        BrandIcon(id: "crates", name: "crates.io", symbol: "square.and.arrow.up.on.square.fill", tint: .orange),
-        BrandIcon(id: "rubygems", name: "RubyGems", symbol: "play.rectangle.fill", tint: .red),
-        BrandIcon(id: "nuget", name: "NuGet", symbol: "square.grid.3x3.fill", tint: .blue),
-        BrandIcon(id: "maven", name: "Maven Central", symbol: "tray.full.fill", tint: .purple),
-        BrandIcon(id: "gradle", name: "Gradle", symbol: "square.and.arrow.up.on.square.fill", tint: .blue),
-
-        // MARK: DNS & Domains
-        BrandIcon(id: "cloudflare", name: "Cloudflare", symbol: "bolt.shield.fill", tint: .orange),
-        BrandIcon(id: "cloudflare-dns", name: "Cloudflare DNS", symbol: "globe.americas.fill", tint: .orange),
-        BrandIcon(id: "namecheap", name: "Namecheap", symbol: "globe.americas.fill", tint: .blue),
-        BrandIcon(id: "godaddy", name: "GoDaddy", symbol: "globe.americas.fill", tint: .green),
-        BrandIcon(id: "gandi", name: "Gandi", symbol: "globe.europe.fill", tint: .blue),
-        BrandIcon(id: "hover", name: "Hover", symbol: "globe.americas.fill", tint: .teal),
-        BrandIcon(id: "porkbun", name: "Porkbun", symbol: "globe.americas.fill", tint: .pink),
-        BrandIcon(id: "dnsimple", name: "DNSimple", symbol: "globe.americas.fill", tint: .green),
-
-        // MARK: General fallback icons
-        BrandIcon(id: "shield", name: "Shield", symbol: "lock.shield.fill", tint: Theme.accent),
-        BrandIcon(id: "key", name: "Key", symbol: "key.fill", tint: .orange),
-        BrandIcon(id: "lock", name: "Lock", symbol: "lock.fill", tint: .gray),
-        BrandIcon(id: "circle", name: "Circle", symbol: "circle.fill", tint: .gray),
-        BrandIcon(id: "star", name: "Star", symbol: "star.fill", tint: .yellow),
-        BrandIcon(id: "bolt", name: "Bolt", symbol: "bolt.fill", tint: .orange),
-        BrandIcon(id: "leaf", name: "Leaf", symbol: "leaf.fill", tint: .green),
-        BrandIcon(id: "heart", name: "Heart", symbol: "heart.fill", tint: .red),
-        BrandIcon(id: "hexagon", name: "Hexagon", symbol: "hexagon.fill", tint: .purple),
-        BrandIcon(id: "octagon", name: "Octagon", symbol: "octagon.fill", tint: .blue),
-        BrandIcon(id: "cloud", name: "Cloud", symbol: "cloud.fill", tint: .blue),
-        BrandIcon(id: "globe", name: "Globe", symbol: "globe.americas.fill", tint: .teal),
+        // MARK: Code / Platforms / General
+        BrandIcon(id: "git", name: "Git", glyph: "\u{f1d3}", style: .brands, tint: .orange),
+        BrandIcon(id: "npmjs", name: "npm", glyph: "\u{f3d4}", style: .brands, tint: .red),
+        BrandIcon(id: "python", name: "Python", glyph: "\u{f3e2}", style: .brands, tint: .blue),
+        BrandIcon(id: "java", name: "Java", glyph: "\u{f4e4}", style: .brands, tint: .red),
+        BrandIcon(id: "swift", name: "Swift", glyph: "\u{f8e1}", style: .brands, tint: .orange),
+        BrandIcon(id: "react", name: "React", glyph: "\u{f41b}", style: .brands, tint: .cyan),
+        BrandIcon(id: "vuejs", name: "Vue.js", glyph: "\u{f41f}", style: .brands, tint: .green),
+        BrandIcon(id: "angular", name: "Angular", glyph: "\u{f420}", style: .brands, tint: .red),
+        BrandIcon(id: "linux", name: "Linux", glyph: "\u{f17c}", style: .brands, tint: .yellow),
+        BrandIcon(id: "windows", name: "Windows", glyph: "\u{f17a}", style: .brands, tint: .blue),
+        BrandIcon(id: "android", name: "Android", glyph: "\u{f17b}", style: .brands, tint: .green),
+        BrandIcon(id: "wordpress", name: "WordPress", glyph: "\u{f19a}", style: .brands, tint: .blue),
+        BrandIcon(id: "shield", name: "Shield", glyph: "\u{f3ed}", style: .solid, tint: Color(red: 0.40, green: 0.78, blue: 0.92)),
+        BrandIcon(id: "key", name: "Key", glyph: "\u{f084}", style: .solid, tint: .orange),
+        BrandIcon(id: "lock", name: "Lock", glyph: "\u{f023}", style: .solid, tint: .gray),
+        BrandIcon(id: "star", name: "Star", glyph: "\u{f005}", style: .solid, tint: .yellow),
+        BrandIcon(id: "bolt", name: "Bolt", glyph: "\u{f0e7}", style: .solid, tint: .orange),
+        BrandIcon(id: "leaf", name: "Leaf", glyph: "\u{f06c}", style: .solid, tint: .green),
+        BrandIcon(id: "heart", name: "Heart", glyph: "\u{f004}", style: .solid, tint: .red),
+        BrandIcon(id: "cloud", name: "Cloud", glyph: "\u{f0c2}", style: .solid, tint: .blue),
+        BrandIcon(id: "globe", name: "Globe", glyph: "\u{f0ac}", style: .solid, tint: .teal),
     ]
 
     /// Look up an icon by ID.
@@ -330,24 +227,18 @@ extension BrandIcon {
         let lower = issuer.lowercased()
         let name = lower.replacingOccurrences(of: " ", with: "")
 
-        // Exact contains matches
         if lower.contains("github") { return find(id: "github") }
         if lower.contains("gitlab") { return find(id: "gitlab") }
         if lower.contains("bitbucket") { return find(id: "bitbucket") }
         if lower.contains("cloudflare") { return find(id: "cloudflare") }
         if lower.contains("aws") || lower.contains("amazonwebservices") { return find(id: "aws") }
         if lower.contains("azure") { return find(id: "azure") }
-        if lower.contains("gcp") || lower.contains("googlecloud") { return find(id: "gcp") }
+        if lower.contains("gcp") || lower.contains("googlecloud") { return find(id: "google-cloud") }
         if lower.contains("digitalocean") || lower.contains("digital ocean") { return find(id: "digitalocean") }
+        if lower.contains("docker") { return find(id: "docker") }
         if lower.contains("heroku") { return find(id: "heroku") }
         if lower.contains("vercel") { return find(id: "vercel") }
         if lower.contains("netlify") { return find(id: "netlify") }
-        if lower.contains("render") { return find(id: "render") }
-        if lower.contains("fly.io") { return find(id: "flyio") }
-        if lower.contains("railway") { return find(id: "railway") }
-        if lower.contains("planetscale") { return find(id: "planetscale") }
-        if lower.contains("supabase") { return find(id: "supabase") }
-        if lower.contains("firebase") { return find(id: "firebase") }
         if lower.contains("notion") { return find(id: "notion") }
         if lower.contains("figma") { return find(id: "figma") }
         if lower.contains("linear") { return find(id: "linear") }
@@ -359,84 +250,61 @@ extension BrandIcon {
         if lower.contains("teams") { return find(id: "teams") }
         if lower.contains("meet") && lower.contains("google") { return find(id: "meet") }
         if lower.contains("dropbox") { return find(id: "dropbox") }
-        if lower.contains("box.com") { return find(id: "box") }
         if lower.contains("onedrive") { return find(id: "onedrive") }
         if lower.contains("google-drive") || lower.contains("drive.google.com") { return find(id: "googledrive") }
-        if lower.contains("pcloud") { return find(id: "pcloud") }
         if lower.contains("proton") { return find(id: "proton") }
-        if lower.contains("tutanota") || lower.contains("tuta.com") { return find(id: "tuta") }
-        if lower.contains("fastmail") { return find(id: "fastmail") }
-        if lower.contains("hey.com") { return find(id: "hey") }
         if lower.contains("gmail") { return find(id: "gmail") }
         if lower.contains("outlook") || lower.contains("hotmail") || lower.contains("live.com") { return find(id: "outlook") }
-        if lower.contains("zoho") { return find(id: "zoho-mail") }
-        if lower.contains("yandex") { return find(id: "yandex") }
-        if lower.contains("mailfence") { return find(id: "mailfence") }
         if lower.contains("reddit") { return find(id: "reddit") }
         if lower.contains("stackoverflow") { return find(id: "stackoverflow") }
-        if lower.contains("discourse") { return find(id: "discourse") }
-        if lower.contains("phpbb") { return find(id: "phpbb") }
-        if lower.contains("nodebb") { return find(id: "nodebb") }
-        if lower.contains("patreon") { return find(id: "patreon") }
-        if lower.contains("kofi") || lower.contains("ko-fi") { return find(id: "kofi") }
         if lower.contains("auth0") { return find(id: "auth0") }
         if lower.contains("okta") { return find(id: "okta") }
         if lower.contains("1password") || lower.contains("onepassword") { return find(id: "onepassword") }
         if lower.contains("bitwarden") { return find(id: "bitwarden") }
         if lower.contains("lastpass") { return find(id: "lastpass") }
-        if lower.contains("dashlane") { return find(id: "dashlane") }
-        if lower.contains("authy") { return find(id: "authy") }
-        if lower.contains("duo") { return find(id: "duo") }
         if lower.contains("stripe") { return find(id: "stripe") }
         if lower.contains("paypal") { return find(id: "paypal") }
         if lower.contains("coinbase") { return find(id: "coinbase") }
-        if lower.contains("binance") { return find(id: "binance") }
-        if lower.contains("kraken") { return find(id: "kraken") }
-        if lower.contains("gemini") { return find(id: "gemini") }
-        if lower.contains("ledger") { return find(id: "ledger") }
-        if lower.contains("trezor") { return find(id: "trezor") }
-        if lower.contains("metamask") { return find(id: "metamask") }
-        if lower.contains("wise") || lower.contains("transferwise") { return find(id: "wise") }
-        if lower.contains("revolut") { return find(id: "revolut") }
+        if lower.contains("bitcoin") { return find(id: "bitcoin") }
+        if lower.contains("ethereum") { return find(id: "ethereum") }
         if lower.contains("steam") { return find(id: "steam") }
-        if lower.contains("epicgames") || lower.contains("epicgames") { return find(id: "epic") }
-        if lower.contains("riotgames") { return find(id: "riot") }
+        if lower.contains("epicgames") || lower.contains("epic games") { return find(id: "epic") }
+        if lower.contains("riotgames") || lower.contains("riot games") { return find(id: "riot") }
         if lower.contains("nintendo") { return find(id: "nintendo") }
         if lower.contains("playstation") || lower.contains("sony") { return find(id: "playstation") }
         if lower.contains("xbox") { return find(id: "xbox") }
-        if lower.contains("battle.net") { return find(id: "battle.net") }
-        if lower.contains("ubisoft") { return find(id: "ubisoft") }
-        if lower.contains("rockstar") { return find(id: "rockstar") }
-        if lower.contains("itch.io") { return find(id: "itch") }
-        if lower.contains("circleci") { return find(id: "circleci") }
-        if lower.contains("travis") { return find(id: "travis") }
-        if lower.contains("githubactions") || lower.contains("github actions") { return find(id: "github-actions") }
-        if lower.contains("jenkins") { return find(id: "jenkins") }
-        if lower.contains("buildkite") { return find(id: "buildkite") }
-        if lower.contains("sentry") { return find(id: "sentry") }
-        if lower.contains("datadog") { return find(id: "datadog") }
-        if lower.contains("new relic") { return find(id: "new-relic") }
-        if lower.contains("namecheap") { return find(id: "namecheap") }
-        if lower.contains("godaddy") { return find(id: "godaddy") }
-        if lower.contains("gandi") { return find(id: "gandi") }
-        if lower.contains("hover") { return find(id: "hover") }
-        if lower.contains("porkbun") { return find(id: "porkbun") }
-        if lower.contains("dnsimple") { return find(id: "dnsimple") }
+        if lower.contains("youtube") { return find(id: "youtube") }
+        if lower.contains("twitch") { return find(id: "twitch") }
+        if lower.contains("telegram") { return find(id: "telegram") }
+        if lower.contains("whatsapp") { return find(id: "whatsapp") }
+        if lower.contains("instagram") { return find(id: "instagram") }
+        if lower.contains("facebook") { return find(id: "facebook") }
+        if lower.contains("linkedin") { return find(id: "linkedin") }
+        if lower.contains("tiktok") { return find(id: "tiktok") }
+        if lower.contains("twitter") || lower.contains("x.com") { return find(id: "x-twitter") }
+        if lower.contains("google") { return find(id: "google") }
+        if lower.contains("microsoft") { return find(id: "microsoft") }
+        if lower.contains("apple") { return find(id: "apple") }
+        if lower.contains("icloud") { return find(id: "icloud") }
+        if lower.contains("npm") { return find(id: "npmjs") }
+        if lower.contains("python") { return find(id: "python") }
+        if lower.contains("java") { return find(id: "java") }
+        if lower.contains("swift") { return find(id: "swift") }
+        if lower.contains("react") { return find(id: "react") }
+        if lower.contains("vue") { return find(id: "vuejs") }
+        if lower.contains("angular") { return find(id: "angular") }
+        if lower.contains("linux") { return find(id: "linux") }
+        if lower.contains("windows") { return find(id: "windows") }
+        if lower.contains("android") { return find(id: "android") }
+        if lower.contains("wordpress") { return find(id: "wordpress") }
 
-        // Chinese Mainland providers
+        // Chinese Mainland providers and apps.
         if lower.contains("aliyun") || lower.contains("alicloud") || lower.contains("aliyun.com") { return find(id: "aliyun") }
         if lower.contains("tencent") || lower.contains("qcloud") || lower.contains("tencentcloud") { return find(id: "tencent-cloud") }
         if lower.contains("huawei") || lower.contains("huaweicloud") { return find(id: "huawei-cloud") }
-        if lower.contains("qingyun") { return find(id: "qingcloud") }
-        if lower.contains("ucloud") { return find(id: "ucloud") }
-        if lower.contains("kingsoft") || lower.contains("kingsoftcloud") { return find(id: "kingsoft-cloud") }
-        if lower.contains("wangsu") { return find(id: "wangsu") }
-        if lower.contains("ecloud") || lower.contains("tianyi") { return find(id: "ecloud") }
-        if lower.contains("cmcloud") || lower.contains("china mobile") { return find(id: "cmcloud") }
-        if lower.contains("unicom") { return find(id: "unicomcloud") }
         if lower.contains("wechat") || lower.contains("weixin") { return find(id: "wechat") }
         if lower.contains("alipay") || lower.contains("zhifubao") { return find(id: "alipay") }
-        if lower.contains("qq.com") || lower.contains("qqmail") { return find(id: "qq") }
+        if lower.contains("qq.com") || lower.contains("qqmail") || name == "qq" { return find(id: "qq") }
         if lower.contains("weibo") || lower.contains("sina") { return find(id: "weibo") }
         if lower.contains("taobao") { return find(id: "taobao") }
         if lower.contains("tmall") { return find(id: "tmall") }
@@ -449,18 +317,9 @@ extension BrandIcon {
         if lower.contains("dingtalk") { return find(id: "dingtalk") }
         if lower.contains("feishu") || lower.contains("lark") { return find(id: "feishu") }
         if lower.contains("netease") || lower.contains("163.com") { return find(id: "netease") }
-        if lower.contains("yeahmail") { return find(id: "yeahmail") }
-        if lower.contains("vipmail") { return find(id: "vipmail") }
         if lower.contains("126.com") { return find(id: "126mail") }
         if lower.contains("189.com") { return find(id: "189mail") }
-        if lower.contains("ctrip") { return find(id: "ctrip") }
-        if lower.contains("meituan") { return find(id: "meituan") }
-        if lower.contains("dianping") { return find(id: "dianping") }
-        if lower.contains("eleme") { return find(id: "eleme") }
-        if lower.contains("sogou") { return find(id: "sogou") }
         if lower.contains("baidu") { return find(id: "baidu") }
-        if lower.contains("yunpan") || lower.contains("weiyun") { return find(id: "yunpan") }
-        if lower.contains("baidu-cloud") { return find(id: "baidu-cloud") }
 
         return nil
     }

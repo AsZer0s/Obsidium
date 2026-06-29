@@ -136,8 +136,7 @@ struct TokenCardView: View {
         return ZStack {
             LinearGradient(colors: [top, bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
             // Big faint brand glyph, bleeding off the bottom-right corner.
-            Image(systemName: selectedBrandIcon.symbol)
-                .font(.system(size: 150, weight: .black))
+            FontAwesomeIconView(icon: selectedBrandIcon, size: 150)
                 .foregroundStyle(.white.opacity(0.08))
                 .rotationEffect(.degrees(-12))
                 .offset(x: 70, y: 36)

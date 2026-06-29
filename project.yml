@@ -30,6 +30,7 @@ targets:
       - path: Obsidium
     resources:
       - path: Obsidium/Assets.xcassets
+      - path: otfs
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.obsidium.app

@@ -268,8 +268,7 @@ private struct ReorderTokensView: View {
         let hasLabel = !account.label.isEmpty && account.displayTitle != account.label
 
         return HStack(spacing: Theme.Spacing.md) {
-            Image(systemName: icon.symbol)
-                .font(.system(size: 16, weight: .semibold))
+            FontAwesomeIconView(icon: icon, size: 18)
                 .foregroundStyle(icon.tint ?? Theme.accent)
                 .frame(width: 28, height: 28)
             VStack(alignment: .leading, spacing: 1) {

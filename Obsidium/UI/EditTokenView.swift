@@ -82,8 +82,7 @@ struct EditTokenView: View {
         VStack(spacing: Theme.Spacing.lg) {
             HStack(spacing: Theme.Spacing.lg) {
                 let icon = selectedBrandIcon
-                Image(systemName: icon.symbol)
-                    .font(.title2.weight(.semibold))
+                FontAwesomeIconView(icon: icon, size: 28)
                     .foregroundStyle(icon.tint ?? Theme.accent)
                     .frame(width: 72, height: 72)
                     .background(Theme.card)
@@ -138,8 +137,7 @@ struct EditTokenView: View {
             } label: {
                 HStack(spacing: Theme.Spacing.md) {
                     let icon = selectedBrandIcon
-                    Image(systemName: icon.symbol)
-                        .font(.title2)
+                    FontAwesomeIconView(icon: icon, size: 24)
                         .foregroundStyle(icon.tint ?? Theme.accent)
                         .frame(width: 52, height: 52)
                         .background(Color.gray.opacity(0.15))
@@ -216,8 +214,7 @@ struct EditTokenView: View {
         let isSelected = selectedIconID == displayIcon.id
 
         return VStack(spacing: Theme.Spacing.sm) {
-            Image(systemName: displayIcon.symbol)
-                .font(.title2)
+            FontAwesomeIconView(icon: displayIcon, size: 28)
                 .foregroundStyle(displayIcon.tint ?? Theme.accent)
                 .frame(width: 64, height: 64)
                 .background(Color.gray.opacity(isSelected ? 0.3 : 0.15))

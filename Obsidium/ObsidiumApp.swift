@@ -13,6 +13,10 @@ struct ObsidiumApp: App {
     @State private var store = VaultStore()
     @State private var toast = ToastCenter()
 
+    init() {
+        FontAwesome.registerFonts()
+    }
+
     var body: some Scene {
         WindowGroup {
             TokenListView()
