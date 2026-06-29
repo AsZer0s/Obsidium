@@ -12,20 +12,26 @@ import SwiftUI
 struct CountdownRing: View {
     let progress: Double
     let secondsRemaining: Int
-    var size: CGFloat = 20
+    var size: CGFloat = 22
+    /// Ring colour while healthy. Expiring always overrides to the warning hue.
+    var tint: Color = Theme.accent
 
     private var isExpiring: Bool { secondsRemaining <= 5 }
-    private var tint: Color { isExpiring ? Theme.warning : Theme.accent }
+    private var strokeColor: Color { isExpiring ? Theme.warning : tint }
 
     var body: some View {
         ZStack {
             Circle()
-                .stroke(.white.opacity(0.10), lineWidth: 2)
+                .stroke(.white.opacity(0.25), lineWidth: 2.5)
             Circle()
                 .trim(from: 0, to: progress)
-                .stroke(tint, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .stroke(strokeColor, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 0.25), value: progress)
+            Text("\(secondsRemaining)")
+                .font(.system(size: 9, weight: .bold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.9))
+                .monospacedDigit()
         }
         .frame(width: size, height: size)
         .accessibilityHidden(true) // the card already announces the code

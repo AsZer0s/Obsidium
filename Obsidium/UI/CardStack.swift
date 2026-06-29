@@ -22,16 +22,16 @@ struct CardStack: View {
     @State private var dragOffset: CGFloat = 0
 
     // Geometry of the deck.
-    private let headerHeight: CGFloat = 56    // collapsed: name row only
-    private let detailHeight: CGFloat = 130   // pulled-out: name + code (slides in)
-    private let stackStep: CGFloat = 46        // visible sliver per stacked card
-    private let pilePeek: CGFloat = 48         // sliver per bottom-pile card —
+    private let headerHeight: CGFloat = 66    // collapsed: logo + name/label
+    private let detailHeight: CGFloat = 152   // pulled-out: name + code (slides in)
+    private let stackStep: CGFloat = 52        // visible sliver per stacked card
+    private let pilePeek: CGFloat = 56         // sliver per bottom-pile card —
                                                // wide enough to keep the name row readable
     private let gap: CGFloat = 16             // min space below the pulled-out card
     private let topInset: CGFloat = 8
     private let bottomInset: CGFloat = 12
 
-    private var spring: Animation { .spring(response: 0.5, dampingFraction: 0.84) }
+    private var spring: Animation { .spring(response: 0.46, dampingFraction: 0.82) }
 
     var body: some View {
         GeometryReader { geo in
