@@ -83,12 +83,10 @@ struct TokenListView: View {
             Button {
                 isSettingsPresented = true
             } label: {
-                Image(systemName: "gearshape")
-                    .font(.body.weight(.medium))
-                    .frame(width: 44, height: 36)
+                Label("Settings", systemImage: "gearshape")
+                    .labelStyle(.iconOnly)
             }
             .tint(Theme.accent)
-            .accessibilityLabel("Settings")
 
             Spacer()
 
@@ -101,14 +99,13 @@ struct TokenListView: View {
             Button {
                 isScannerPresented = true
             } label: {
-                Image(systemName: "plus")
+                Label("Add token", systemImage: "plus")
+                    .labelStyle(.iconOnly)
                     .font(.body.weight(.semibold))
-                    .frame(width: 44, height: 36)
             }
             .tint(Theme.accent)
-            .accessibilityLabel("Add token")
         }
-        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.horizontal, Theme.Spacing.lg)
         .padding(.bottom, Theme.Spacing.sm)
         .background(Color.clear)
     }

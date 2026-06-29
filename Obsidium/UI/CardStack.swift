@@ -47,18 +47,13 @@ struct CardStack: View {
                     }
                 }
                 .frame(width: geo.size.width, height: max(geo.size.height, contentHeight), alignment: .top)
-                .background(alignment: .top) {
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: CardStackScrollOffsetKey.self,
-                            value: max(0, -proxy.frame(in: .named("cardStackScroll")).minY)
-                        )
-                    }
-                }
             }
-            .coordinateSpace(name: "cardStackScroll")
             .scrollIndicators(.hidden)
-            .onPreferenceChange(CardStackScrollOffsetKey.self) { scrollOffset = $0 }
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                max(0, geometry.contentOffset.y)
+            } action: { _, newValue in
+                scrollOffset = newValue
+            }
             .animation(spring, value: selectedID)
         }
     }
@@ -132,13 +127,5 @@ struct CardStack: View {
                     withAnimation(spring) { dragOffset = 0 }
                 }
             }
-    }
-}
-
-private struct CardStackScrollOffsetKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }
