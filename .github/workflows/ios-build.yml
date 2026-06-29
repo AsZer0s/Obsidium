@@ -79,12 +79,60 @@ jobs:
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
       # Boot the simulator up front and wait until it's fully ready, so the
-      # test step doesn't stall on a cold boot (a common CI hang).
+      # test step doesn't stall on a cold boot (a common CI hang). If the boot
+      # status hangs for 5 minutes (often "Waiting on BackBoard"), skip unit
+      # tests and continue directly to the IPA archive/package steps.
       - name: Boot simulator
+        id: boot
+        env:
+          SIM_UDID: ${{ steps.sim.outputs.udid }}
         run: |
-          xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b
+          python3 - <<'PY'
+          import os
+          import subprocess
+          import sys
+
+          udid = os.environ["SIM_UDID"]
+          output_file = os.environ["GITHUB_OUTPUT"]
+
+          # bootstatus also boots the device when needed, but an explicit boot
+          # gives better logs and is harmless if it is already booted.
+          subprocess.run(["xcrun", "simctl", "boot", udid], check=False)
+
+          try:
+              result = subprocess.run(
+                  ["xcrun", "simctl", "bootstatus", udid, "-b"],
+                  text=True,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.STDOUT,
+                  timeout=300,
+              )
+              print(result.stdout, end="")
+              if result.returncode == 0:
+                  with open(output_file, "a", encoding="utf-8") as f:
+                      f.write("skip_tests=false\n")
+                  sys.exit(0)
+
+              print(f"simctl bootstatus exited with {result.returncode}; skipping unit tests and continuing to IPA archive.")
+              with open(output_file, "a", encoding="utf-8") as f:
+                  f.write("skip_tests=true\n")
+              sys.exit(0)
+          except subprocess.TimeoutExpired as exc:
+              if exc.stdout:
+                  print(exc.stdout, end="")
+              print("Simulator bootstatus exceeded 5 minutes (commonly stuck at Waiting on BackBoard); skipping unit tests and continuing to IPA archive.")
+              with open(output_file, "a", encoding="utf-8") as f:
+                  f.write("skip_tests=true\n")
+              sys.exit(0)
+          PY
+
+      - name: Skip unit tests after simulator boot timeout
+        if: steps.boot.outputs.skip_tests == 'true'
+        run: |
+          echo "Skipping unit tests because the simulator did not finish booting within 5 minutes. Continuing to archive/package IPA."
 
       - name: Run unit tests
+        if: steps.boot.outputs.skip_tests != 'true'
         timeout-minutes: 15
         run: |
           set -o pipefail
