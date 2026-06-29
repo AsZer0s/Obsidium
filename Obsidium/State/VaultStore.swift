@@ -61,17 +61,9 @@ final class VaultStore {
         persist()
     }
 
-    /// Reorder in memory only — used for the live drag-to-reorder. Cheap enough
-    /// to call on every slot crossing; call `persistOrder()` once on drop.
-    func move(fromIndex: Int, toIndex: Int) {
-        guard fromIndex != toIndex, accounts.indices.contains(fromIndex) else { return }
-        let item = accounts.remove(at: fromIndex)
-        let clamped = min(max(toIndex, 0), accounts.count)
-        accounts.insert(item, at: clamped)
-    }
-
-    /// Persist the current order after a drag-to-reorder finishes.
-    func persistOrder() {
+    /// Reorder accounts (List `onMove`) and persist the new order.
+    func move(from source: IndexSet, to destination: Int) {
+        accounts.move(fromOffsets: source, toOffset: destination)
         persist()
     }
 

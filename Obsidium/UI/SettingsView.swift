@@ -57,6 +57,7 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 securitySection
+                organizeSection
                 backupSection
                 aboutSection
             }
@@ -118,6 +119,24 @@ struct SettingsView: View {
             Text(Biometrics.isAvailable
                  ? "Require Face ID to open Obsidium, and before deleting a token or exporting a backup."
                  : "Biometric authentication isn't available on this device.")
+        }
+    }
+
+    private var organizeSection: some View {
+        Section {
+            if store.accounts.count > 1 {
+                NavigationLink {
+                    ReorderTokensView()
+                } label: {
+                    Label("Reorder Tokens", systemImage: "arrow.up.arrow.down")
+                }
+            }
+        } header: {
+            Text("Organize")
+        } footer: {
+            Text(store.accounts.count > 1
+                 ? "Drag tokens to change the order they appear in the deck."
+                 : "Add a second token to start arranging them.")
         }
     }
 
@@ -220,6 +239,51 @@ struct SettingsView: View {
             }
         } catch {
             resultMessage = (error as? LocalizedError)?.errorDescription ?? "Couldn't restore the backup."
+        }
+    }
+}
+
+/// A always-editable list for drag-to-reorder the deck. Changes persist live.
+private struct ReorderTokensView: View {
+    @Environment(VaultStore.self) private var store
+
+    var body: some View {
+        List {
+            ForEach(store.accounts) { account in
+                row(for: account)
+            }
+            .onMove { source, destination in
+                store.move(from: source, to: destination)
+            }
+        }
+        .environment(\.editMode, .constant(.active))
+        .navigationTitle("Reorder")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func row(for account: Account) -> some View {
+        let icon = account.iconID.flatMap { BrandIcon.find(id: $0) }
+            ?? BrandIcon.autodetect(for: account.issuer)
+            ?? .default
+        let hasLabel = !account.label.isEmpty && account.displayTitle != account.label
+
+        return HStack(spacing: Theme.Spacing.md) {
+            Image(systemName: icon.symbol)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(icon.tint ?? Theme.accent)
+                .frame(width: 28, height: 28)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(account.displayTitle)
+                    .font(.body)
+                    .lineLimit(1)
+                if hasLabel {
+                    Text(account.label)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
         }
     }
 }
