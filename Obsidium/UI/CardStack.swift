@@ -19,6 +19,7 @@ struct CardStack: View {
 
     @State private var selectedID: Account.ID?
     @State private var dragOffset: CGFloat = 0
+    @State private var scrollOffset: CGFloat = 0
 
     // Geometry of the deck.
     private let headerHeight: CGFloat = 86
@@ -40,14 +41,24 @@ struct CardStack: View {
                         let index = index(of: account)
                         let isSelected = selectedID == account.id
                         card(account: account, isSelected: isSelected)
-                            .offset(y: yOffset(for: index, in: geo.size.height) + (isSelected ? dragOffset : 0))
+                            .offset(y: yOffset(for: index, in: geo.size.height) + (isSelected ? scrollOffset + dragOffset : 0))
                             .zIndex(isSelected ? 1000 : Double(index))
                             .gesture(isSelected ? dragToDismiss : nil)
                     }
                 }
                 .frame(width: geo.size.width, height: max(geo.size.height, contentHeight), alignment: .top)
+                .background(alignment: .top) {
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: CardStackScrollOffsetKey.self,
+                            value: max(0, -proxy.frame(in: .named("cardStackScroll")).minY)
+                        )
+                    }
+                }
             }
+            .coordinateSpace(name: "cardStackScroll")
             .scrollIndicators(.hidden)
+            .onPreferenceChange(CardStackScrollOffsetKey.self) { scrollOffset = $0 }
             .animation(spring, value: selectedID)
         }
     }
@@ -121,5 +132,13 @@ struct CardStack: View {
                     withAnimation(spring) { dragOffset = 0 }
                 }
             }
+    }
+}
+
+private struct CardStackScrollOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }

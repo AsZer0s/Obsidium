@@ -31,8 +31,15 @@ struct TokenListView: View {
                 Theme.background.ignoresSafeArea()
                 content
             }
-            .navigationTitle("Obsidium")
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Obsidium")
+                        .font(.headline.weight(.semibold))
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         isSettingsPresented = true
