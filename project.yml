@@ -30,7 +30,7 @@ targets:
       - path: Obsidium
     resources:
       - path: Obsidium/Assets.xcassets
-      - path: otfs
+      - path: Obsidium/Resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.obsidium.app
@@ -40,6 +40,7 @@ targets:
         INFOPLIST_KEY_NSCameraUsageDescription: "Obsidium uses the camera only to scan 2FA QR codes. Nothing is recorded or sent anywhere."
         INFOPLIST_KEY_NSFaceIDUsageDescription: "Obsidium uses Face ID to protect sensitive actions like deleting tokens and exporting your backup."
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIAppFonts: ["Font Awesome 7 Brands-Regular-400.otf", "Font Awesome 7 Free-Regular-400.otf", "Font Awesome 7 Free-Solid-900.otf"]
 
   ObsidiumTests:
     type: bundle.unit-test

@@ -2,10 +2,9 @@
 //  ScannerScreen.swift
 //  Obsidium
 //
-//  Hosts the camera scanner in a sheet, parses the scanned otpauth:// URI,
-//  adds the account to the store, and handles permission / error states.
-//  Also provides a Photos picker to scan a QR from a saved image (Vision
-//  framework for static-image QR detection).
+//  Full-screen camera scanner. The camera fills the entire screen; controls float
+//  above it. A bottom floating button opens Photos so a QR can be selected from
+//  the album and decoded with Vision.
 //
 
 import SwiftUI
@@ -25,77 +24,117 @@ struct ScannerScreen: View {
     @State private var isProcessingPhoto = false
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                content
-                Divider().overlay(Theme.cardStroke)
-                Button {
-                    isShowingPhotoPicker = true
-                } label: {
-                    HStack(spacing: Theme.Spacing.sm) {
-                        Image(systemName: "photo.on.rectangle.angled")
-                        Text("Scan from Album")
-                    }
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Theme.accent)
-                    .padding(.vertical, Theme.Spacing.lg)
-                }
-                .disabled(isProcessingPhoto)
+        ZStack {
+            content
+                .ignoresSafeArea()
+
+            VStack {
+                topControls
+                Spacer()
+                albumButton
             }
-            .navigationTitle("Scan Code")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-            }
-            .photosPicker(
-                isPresented: $isShowingPhotoPicker,
-                selection: $photoPickerItem,
-                matching: .images,
-                preferredItemEncoding: .automatic
-            )
-            .onChange(of: photoPickerItem) { _, item in
-                guard let item else { return }
-                Task {
-                    await processPhoto(item)
-                }
-            }
-            .alert("Couldn't Add Token", isPresented: errorBinding) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(errorMessage ?? "")
-            }
-            .task { await requestCameraAccess() }
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.top, Theme.Spacing.lg)
+            .padding(.bottom, Theme.Spacing.xl)
         }
+        .background(.black)
+        .photosPicker(
+            isPresented: $isShowingPhotoPicker,
+            selection: $photoPickerItem,
+            matching: .images,
+            preferredItemEncoding: .automatic
+        )
+        .onChange(of: photoPickerItem) { _, item in
+            guard let item else { return }
+            Task { await processPhoto(item) }
+        }
+        .alert("Couldn't Add Token", isPresented: errorBinding) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
+        .task { await requestCameraAccess() }
     }
 
     @ViewBuilder
     private var content: some View {
         switch permission {
         case .undetermined:
-            Color.black.overlay(ProgressView())
+            Color.black.overlay(ProgressView().tint(.white))
         case .denied:
-            ZStack {
-                Color.black
-                ContentUnavailableView {
-                    Label("Camera Access Needed", systemImage: "camera.fill")
-                } description: {
-                    Text("Enable camera access in Settings to scan QR codes.")
-                } actions: {
-                    Button("Open Settings") {
-                        if let url = URL(string: UIApplication.openSettingsURLString) {
-                            UIApplication.shared.open(url)
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Theme.accent)
-                }
-            }
+            Color.black.overlay(permissionDeniedView)
         case .authorized:
             QRScannerView(onFound: handleScan, onError: { errorMessage = "The camera is unavailable on this device." })
-                .ignoresSafeArea(edges: [.bottom, .horizontal])
         }
+    }
+
+    private var topControls: some View {
+        HStack {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(.black.opacity(0.35), in: Circle())
+                    .overlay(Circle().stroke(.white.opacity(0.16), lineWidth: 1))
+            }
+            .accessibilityLabel("Close scanner")
+
+            Spacer()
+        }
+    }
+
+    private var albumButton: some View {
+        Button {
+            isShowingPhotoPicker = true
+        } label: {
+            HStack(spacing: Theme.Spacing.sm) {
+                if isProcessingPhoto {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .font(.body.weight(.semibold))
+                }
+                Text(isProcessingPhoto ? "Scanning Photo…" : "Choose from Album")
+                    .font(.body.weight(.semibold))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, Theme.Spacing.xl)
+            .padding(.vertical, Theme.Spacing.md)
+            .background(.black.opacity(0.42), in: Capsule())
+            .overlay(Capsule().stroke(.white.opacity(0.18), lineWidth: 1))
+            .shadow(color: .black.opacity(0.35), radius: 14, y: 6)
+        }
+        .disabled(isProcessingPhoto)
+        .accessibilityLabel("Choose QR code from album")
+    }
+
+    private var permissionDeniedView: some View {
+        VStack(spacing: Theme.Spacing.lg) {
+            Image(systemName: "camera.fill")
+                .font(.system(size: 44, weight: .light))
+                .foregroundStyle(.white)
+            VStack(spacing: Theme.Spacing.sm) {
+                Text("Camera Access Needed")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                Text("Enable camera access in Settings to scan QR codes.")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+            }
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.accent)
+        }
+        .padding(Theme.Spacing.xl)
     }
 
     private var errorBinding: Binding<Bool> {
@@ -128,7 +167,7 @@ struct ScannerScreen: View {
         }
 
         let request = VNDetectBarcodesRequest()
-        request.symbologies = [.QR]
+        request.symbologies = [.qr]
 
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
         do {

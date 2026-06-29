@@ -53,7 +53,7 @@ struct TokenListView: View {
                     .accessibilityLabel("Add token")
                 }
             }
-            .sheet(isPresented: $isScannerPresented) {
+            .fullScreenCover(isPresented: $isScannerPresented) {
                 ScannerScreen()
             }
             .sheet(isPresented: $isSettingsPresented) {
@@ -105,9 +105,7 @@ struct TokenListView: View {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 CardStack(
                     accounts: store.accounts,
-                    now: context.date,
-                    onEdit: { editingAccount = $0 },
-                    onDelete: deleteGated
+                    now: context.date
                 )
             }
         }

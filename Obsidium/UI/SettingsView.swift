@@ -124,19 +124,22 @@ struct SettingsView: View {
 
     private var organizeSection: some View {
         Section {
-            if store.accounts.count > 1 {
+            if store.accounts.isEmpty {
+                Label("No Tokens", systemImage: "list.bullet.rectangle")
+                    .foregroundStyle(.secondary)
+            } else {
                 NavigationLink {
-                    ReorderTokensView()
+                    ManageTokensView()
                 } label: {
-                    Label("Reorder Tokens", systemImage: "arrow.up.arrow.down")
+                    Label("Manage Tokens", systemImage: "list.bullet.rectangle")
                 }
             }
         } header: {
-            Text("Organize")
+            Text("Tokens")
         } footer: {
-            Text(store.accounts.count > 1
-                 ? "Drag tokens to change the order they appear in the deck."
-                 : "Add a second token to start arranging them.")
+            Text(store.accounts.isEmpty
+                 ? "Add a token to manage it here."
+                 : "Tap to edit, swipe for actions, or tap Edit to reorder tokens.")
         }
     }
 
@@ -243,22 +246,45 @@ struct SettingsView: View {
     }
 }
 
-/// A always-editable list for drag-to-reorder the deck. Changes persist live.
-private struct ReorderTokensView: View {
+/// A system List for token management: tap to edit, swipe for edit/delete,
+/// and use Edit mode's native reorder handles to rearrange the deck.
+private struct ManageTokensView: View {
     @Environment(VaultStore.self) private var store
+    @AppStorage("requireBiometricsForSensitiveActions") private var requireBiometrics = false
+    @State private var editingAccount: Account?
 
     var body: some View {
         List {
             ForEach(store.accounts) { account in
                 row(for: account)
+                    .contentShape(Rectangle())
+                    .onTapGesture { editingAccount = account }
+                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                        Button {
+                            editingAccount = account
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        .tint(Theme.accent)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            deleteGated(account)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
             }
             .onMove { source, destination in
                 store.move(from: source, to: destination)
             }
         }
-        .environment(\.editMode, .constant(.active))
-        .navigationTitle("Reorder")
+        .navigationTitle("Manage Tokens")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar { EditButton() }
+        .sheet(item: $editingAccount) { account in
+            EditTokenView(account: account) { store.update($0) }
+        }
     }
 
     private func row(for account: Account) -> some View {
@@ -282,6 +308,18 @@ private struct ReorderTokensView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
+            }
+        }
+    }
+
+    private func deleteGated(_ account: Account) {
+        guard requireBiometrics else {
+            store.delete(account)
+            return
+        }
+        Task {
+            if await Biometrics.authenticate(reason: "Authenticate to delete this token") {
+                await MainActor.run { store.delete(account) }
             }
         }
     }

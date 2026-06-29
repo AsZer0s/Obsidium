@@ -48,6 +48,7 @@ enum FontAwesome {
         didRegister = true
         for style in [FontAwesomeStyle.brands, .solid, .regular] {
             let fontURL = Bundle.main.url(forResource: style.fileName, withExtension: "otf")
+                ?? Bundle.main.url(forResource: "Fonts/\(style.fileName)", withExtension: "otf")
                 ?? Bundle.main.url(forResource: "otfs/\(style.fileName)", withExtension: "otf")
             guard let fontURL = fontURL else { continue }
             CTFontManagerRegisterFontsForURL(fontURL as CFURL, .process, nil)
