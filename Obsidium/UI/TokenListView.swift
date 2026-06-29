@@ -107,7 +107,9 @@ struct TokenListView: View {
                     accounts: store.accounts,
                     now: context.date,
                     onEdit: { editingAccount = $0 },
-                    onDelete: deleteGated
+                    onDelete: deleteGated,
+                    onMove: { store.move(fromIndex: $0, toIndex: $1) },
+                    onCommitOrder: { store.persistOrder() }
                 )
             }
         }
