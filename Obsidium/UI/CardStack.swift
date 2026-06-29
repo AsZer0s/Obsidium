@@ -20,7 +20,6 @@ struct CardStack: View {
     @State private var selectedID: Account.ID?
     @State private var dragOffset: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
-    @State private var selectedPinnedY: CGFloat = 0
 
     // Geometry of the deck.
     private let headerHeight: CGFloat = 132
@@ -68,7 +67,7 @@ struct CardStack: View {
     }
 
     private var selectedPinnedCompensation: CGFloat {
-        selectedPinnedY + scrollOffset - topInset
+        scrollOffset
     }
 
     private func contentHeight(in height: CGFloat) -> CGFloat {
@@ -121,14 +120,7 @@ struct CardStack: View {
 
     private func select(_ id: Account.ID) {
         withAnimation(spring) {
-            if selectedID == id {
-                selectedID = nil
-                selectedPinnedY = 0
-            } else {
-                let index = accounts.firstIndex { $0.id == id } ?? 0
-                selectedPinnedY = collapsedTopInset + CGFloat(index) * stackStep - scrollOffset
-                selectedID = id
-            }
+            selectedID = (selectedID == id) ? nil : id
             dragOffset = 0
         }
     }
@@ -142,7 +134,6 @@ struct CardStack: View {
                 if value.translation.height > 60 {
                     withAnimation(spring) {
                         selectedID = nil
-                        selectedPinnedY = 0
                         dragOffset = 0
                     }
                 } else {
