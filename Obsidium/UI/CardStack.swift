@@ -2,12 +2,11 @@
 //  CardStack.swift
 //  Obsidium
 //
-//  An Apple Wallet–style deck. Collapsed, the cards overlap and each shows its
-//  name + username. Tap a card and it rises to the top to reveal the code while
-//  the rest slide to the BOTTOM of the screen as a still-readable stack (each
-//  keeps showing its name + username). Swipe the pulled-out card down to drop
-//  it back. Long-press a card for the Edit / Delete menu. Reordering lives in
-//  Settings → Reorder Tokens.
+//  An Apple Wallet–style deck. Collapsed, the cards overlap and scroll like a
+//  long wallet stack. Tap a card and it rises to the top to reveal the code;
+//  the remaining cards form their own independently scrollable bottom pile.
+//  Swipe the pulled-out card down to drop it back. Long-press a card for the
+//  Edit / Delete menu. Reordering lives in Settings → Reorder Tokens.
 //
 
 import SwiftUI
@@ -24,11 +23,10 @@ struct CardStack: View {
     @State private var menuAccount: Account?
 
     // Geometry of the deck.
-    private let headerHeight: CGFloat = 58    // collapsed: name row only
-    private let detailHeight: CGFloat = 140   // pulled-out: name + code (slides in)
-    private let stackStep: CGFloat = 48        // visible sliver per stacked card
-    private let pilePeek: CGFloat = 50         // sliver per bottom-pile card —
-                                               // wide enough to keep the name row readable
+    private let headerHeight: CGFloat = 86    // collapsed: more card-like, not a thin strip
+    private let detailHeight: CGFloat = 148   // pulled-out: name + code (slides in)
+    private let stackStep: CGFloat = 70        // visible sliver per stacked card
+    private let pilePeek: CGFloat = 72         // visible sliver per bottom-pile card
     private let gap: CGFloat = 16             // min space below the pulled-out card
     private let topInset: CGFloat = 8
     private let bottomInset: CGFloat = 12
@@ -37,56 +35,117 @@ struct CardStack: View {
 
     var body: some View {
         GeometryReader { geo in
-            ZStack(alignment: .top) {
-                ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
-                    let isSelected = selectedID == account.id
-                    TokenCardView(
-                        account: account,
-                        now: now,
-                        mode: isSelected ? .detail : .header,
-                        height: isSelected ? detailHeight : headerHeight,
-                        onTap: { select(account.id) }
+            ZStack(alignment: .bottom) {
+                Group {
+                    if let selectedIndex, accounts.indices.contains(selectedIndex) {
+                        expandedDeck(selectedIndex: selectedIndex, in: geo.size)
+                    } else {
+                        collapsedDeck(in: geo.size)
+                    }
+                }
+                .disabled(menuAccount != nil)
+
+                if let menuAccount {
+                    Color.black.opacity(0.30)
+                        .ignoresSafeArea()
+                        .onTapGesture { self.menuAccount = nil }
+                        .transition(.opacity)
+
+                    TokenActionMenu(
+                        account: menuAccount,
+                        onEdit: {
+                            self.menuAccount = nil
+                            onEdit(menuAccount)
+                        },
+                        onDelete: {
+                            self.menuAccount = nil
+                            onDelete(menuAccount)
+                        },
+                        onCancel: { self.menuAccount = nil }
                     )
                     .padding(.horizontal, Theme.Spacing.lg)
-                    .offset(y: yOffset(for: index, in: geo.size.height) + (isSelected ? dragOffset : 0))
-                    .zIndex(isSelected ? 1000 : Double(index))
-                    .gesture(isSelected ? dragToDismiss : nil)
-                    .simultaneousGesture(LongPressGesture(minimumDuration: 0.45).onEnded { _ in
-                        menuAccount = account
-                    })
+                    .padding(.bottom, Theme.Spacing.lg)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(3000)
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
-            .animation(spring, value: selectedID)
         }
-        .confirmationDialog(
-            menuAccount?.displayTitle ?? "Token",
-            isPresented: menuPresented,
-            titleVisibility: .visible,
-            presenting: menuAccount
-        ) { account in
-            Button("Edit") { onEdit(account) }
-            Button("Delete", role: .destructive) { onDelete(account) }
-            Button("Cancel", role: .cancel) {}
-        }
+        .animation(.snappy, value: menuAccount)
     }
 
-    // MARK: Layout math
+    // MARK: Layout
 
     private var selectedIndex: Int? {
         guard let id = selectedID else { return nil }
         return accounts.firstIndex { $0.id == id }
     }
 
-    private func yOffset(for index: Int, in height: CGFloat) -> CGFloat {
-        guard let selected = selectedIndex else { return topInset + CGFloat(index) * stackStep }
-        if index == selected { return topInset }
+    private var collapsedContentHeight: CGFloat {
+        topInset + CGFloat(max(accounts.count - 1, 0)) * stackStep + headerHeight + bottomInset
+    }
 
-        let j = index < selected ? index : index - 1
-        let others = accounts.count - 1
-        let pileHeight = CGFloat(max(0, others - 1)) * pilePeek + headerHeight
-        let pileTop = max(topInset + detailHeight + gap, height - bottomInset - pileHeight)
-        return pileTop + CGFloat(j) * pilePeek
+    private func pileContentHeight(count: Int) -> CGFloat {
+        topInset + CGFloat(max(count - 1, 0)) * pilePeek + headerHeight + bottomInset
+    }
+
+    private func collapsedDeck(in size: CGSize) -> some View {
+        ScrollView(.vertical) {
+            ZStack(alignment: .top) {
+                ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
+                    card(account: account, isSelected: false)
+                        .offset(y: topInset + CGFloat(index) * stackStep)
+                        .zIndex(Double(index))
+                }
+            }
+            .frame(width: size.width, height: max(size.height, collapsedContentHeight), alignment: .top)
+        }
+        .scrollIndicators(.hidden)
+        .animation(spring, value: selectedID)
+    }
+
+    private func expandedDeck(selectedIndex: Int, in size: CGSize) -> some View {
+        let selected = accounts[selectedIndex]
+        let others = accounts.enumerated().filter { $0.offset != selectedIndex }.map(\.element)
+        let pileTop = topInset + detailHeight + gap
+        let pileHeight = max(0, size.height - pileTop)
+
+        return ZStack(alignment: .top) {
+            card(account: selected, isSelected: true)
+                .offset(y: topInset + dragOffset)
+                .zIndex(1000)
+                .gesture(dragToDismiss)
+
+            ScrollView(.vertical) {
+                ZStack(alignment: .top) {
+                    ForEach(Array(others.enumerated()), id: \.element.id) { index, account in
+                        card(account: account, isSelected: false)
+                            .offset(y: topInset + CGFloat(index) * pilePeek)
+                            .zIndex(Double(index))
+                    }
+                }
+                .frame(width: size.width, height: max(pileHeight, pileContentHeight(count: others.count)), alignment: .top)
+            }
+            .scrollIndicators(.hidden)
+            .frame(width: size.width, height: pileHeight, alignment: .top)
+            .offset(y: pileTop)
+        }
+        .frame(width: size.width, height: size.height, alignment: .top)
+        .animation(spring, value: selectedID)
+    }
+
+    private func card(account: Account, isSelected: Bool) -> some View {
+        TokenCardView(
+            account: account,
+            now: now,
+            mode: isSelected ? .detail : .header,
+            height: isSelected ? detailHeight : headerHeight,
+            onTap: { select(account.id) }
+        )
+        .padding(.horizontal, Theme.Spacing.lg)
+        .simultaneousGesture(LongPressGesture(minimumDuration: 0.45).onEnded { _ in
+            menuAccount = account
+        })
     }
 
     // MARK: Interaction
@@ -112,10 +171,56 @@ struct CardStack: View {
             }
     }
 
-    private var menuPresented: Binding<Bool> {
-        Binding(
-            get: { menuAccount != nil },
-            set: { if !$0 { menuAccount = nil } }
-        )
+}
+
+private struct TokenActionMenu: View {
+    let account: Account
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        VStack(spacing: Theme.Spacing.sm) {
+            VStack(spacing: 0) {
+                Text(account.displayTitle)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .padding(.vertical, Theme.Spacing.md)
+
+                Divider()
+
+                Button(action: onEdit) {
+                    Label("Edit", systemImage: "pencil")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Theme.Spacing.md)
+                }
+
+                Divider()
+
+                Button(role: .destructive, action: onDelete) {
+                    Label("Delete", systemImage: "trash")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Theme.Spacing.md)
+                }
+            }
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Theme.cardStroke, lineWidth: 1)
+            )
+
+            Button(action: onCancel) {
+                Text("Cancel")
+                    .font(.body.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Theme.Spacing.md)
+            }
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Theme.cardStroke, lineWidth: 1)
+            )
+        }
     }
 }
