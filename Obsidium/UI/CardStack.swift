@@ -21,6 +21,7 @@ struct CardStack: View {
 
     @State private var selectedID: Account.ID?
     @State private var dragOffset: CGFloat = 0
+    @State private var menuAccount: Account?
 
     // Geometry of the deck.
     private let headerHeight: CGFloat = 58    // collapsed: name row only
@@ -50,22 +51,23 @@ struct CardStack: View {
                     .offset(y: yOffset(for: index, in: geo.size.height) + (isSelected ? dragOffset : 0))
                     .zIndex(isSelected ? 1000 : Double(index))
                     .gesture(isSelected ? dragToDismiss : nil)
-                    .contextMenu {
-                        Button {
-                            onEdit(account)
-                        } label: {
-                            Label("Edit", systemImage: "pencil")
-                        }
-                        Button(role: .destructive) {
-                            onDelete(account)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
+                    .simultaneousGesture(LongPressGesture(minimumDuration: 0.45).onEnded { _ in
+                        menuAccount = account
+                    })
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
             .animation(spring, value: selectedID)
+        }
+        .confirmationDialog(
+            menuAccount?.displayTitle ?? "Token",
+            isPresented: menuPresented,
+            titleVisibility: .visible,
+            presenting: menuAccount
+        ) { account in
+            Button("Edit") { onEdit(account) }
+            Button("Delete", role: .destructive) { onDelete(account) }
+            Button("Cancel", role: .cancel) {}
         }
     }
 
@@ -108,5 +110,12 @@ struct CardStack: View {
                     withAnimation(spring) { dragOffset = 0 }
                 }
             }
+    }
+
+    private var menuPresented: Binding<Bool> {
+        Binding(
+            get: { menuAccount != nil },
+            set: { if !$0 { menuAccount = nil } }
+        )
     }
 }
