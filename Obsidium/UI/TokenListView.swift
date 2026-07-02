@@ -323,32 +323,66 @@ private struct SearchResultsView: View {
     let query: String
     let accounts: [Account]
 
+    @State private var expandedID: Account.ID?
+
     var body: some View {
         Group {
             if accounts.isEmpty {
                 SearchEmptyState(query: query)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: Theme.Spacing.md) {
-                        ForEach(accounts) { account in
-                            SearchTokenCard(account: account)
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    ScrollView {
+                        LazyVStack(spacing: Theme.Spacing.md) {
+                            ForEach(accounts) { account in
+                                SearchTokenCard(
+                                    account: account,
+                                    now: context.date,
+                                    isExpanded: expandedID == account.id
+                                ) {
+                                    withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                                        expandedID = expandedID == account.id ? nil : account.id
+                                    }
+                                }
+                            }
                         }
+                        .padding(.horizontal, Theme.Spacing.lg)
+                        .padding(.top, Theme.Spacing.md)
+                        .padding(.bottom, Theme.Spacing.xxl)
                     }
-                    .padding(.horizontal, Theme.Spacing.lg)
-                    .padding(.top, Theme.Spacing.md)
-                    .padding(.bottom, Theme.Spacing.xxl)
+                    .scrollIndicators(.hidden)
                 }
-                .scrollIndicators(.hidden)
             }
+        }
+        .onChange(of: accounts.map(\.id)) { _, ids in
+            if let id = expandedID, !ids.contains(id) { expandedID = nil }
         }
     }
 }
 
 private struct SearchTokenCard: View {
     let account: Account
+    let now: Date
+    let isExpanded: Bool
+    let onToggle: () -> Void
+
+    @Environment(ToastCenter.self) private var toast
+    @State private var didCopy = false
 
     private var hasLabel: Bool { !account.label.isEmpty && account.displayTitle != account.label }
+    private var code: String { TOTPGenerator.code(for: account, at: now) ?? "------" }
+    private var hasCode: Bool { code != "------" }
+
+    private var formattedCode: String {
+        guard hasCode, code.count == 6 || code.count == 8 else {
+            return hasCode ? code : "— — —"
+        }
+        let mid = code.index(code.startIndex, offsetBy: code.count / 2)
+        return "\(code[..<mid]) \(code[mid...])"
+    }
+
+    private var secondsRemaining: Int { TOTPGenerator.secondsRemaining(period: account.period, at: now) }
+    private var progress: Double { TOTPGenerator.progress(period: account.period, at: now) }
 
     private var brandIcon: BrandIcon {
         account.iconID.flatMap { BrandIcon.find(id: $0) }
@@ -370,6 +404,35 @@ private struct SearchTokenCard: View {
     }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: isExpanded ? Theme.Spacing.lg : Theme.Spacing.xs) {
+            nameBlock
+
+            if isExpanded {
+                codeRow
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, Theme.Spacing.lg)
+        .frame(minHeight: isExpanded ? 148 : 82)
+        .background { cardBackground }
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                .stroke(.white.opacity(0.14), lineWidth: 1)
+        )
+        .shadow(color: brandTint.opacity(isExpanded ? 0.30 : 0.22), radius: isExpanded ? 16 : 12, y: isExpanded ? 8 : 6)
+        .shadow(color: .black.opacity(0.28), radius: 5, y: 2)
+        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .onTapGesture { isExpanded ? copyCode() : onToggle() }
+        .animation(.snappy, value: code)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityText)
+        .accessibilityHint(isExpanded ? "Double-tap to copy" : "Double-tap to reveal code")
+    }
+
+    private var nameBlock: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
             Text(account.displayTitle)
                 .font(.headline.weight(.semibold))
@@ -384,20 +447,39 @@ private struct SearchTokenCard: View {
                     .truncationMode(.middle)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Theme.Spacing.lg)
-        .padding(.vertical, Theme.Spacing.lg)
-        .frame(minHeight: 82)
-        .background { cardBackground }
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                .stroke(.white.opacity(0.14), lineWidth: 1)
-        )
-        .shadow(color: brandTint.opacity(0.22), radius: 12, y: 6)
-        .shadow(color: .black.opacity(0.28), radius: 5, y: 2)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(account.displayTitle)\(hasLabel ? ", \(account.label)" : "")")
+    }
+
+    private var codeRow: some View {
+        HStack(alignment: .center, spacing: Theme.Spacing.md) {
+            Text(formattedCode)
+                .font(Theme.Typography.code)
+                .tracking(4)
+                .foregroundStyle(didCopy ? .white : .white.opacity(0.95))
+                .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
+                .contentTransition(.numericText())
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            Spacer(minLength: Theme.Spacing.sm)
+            CountdownRing(progress: progress, secondsRemaining: secondsRemaining, tint: .white)
+        }
+    }
+
+    private var accessibilityText: String {
+        isExpanded
+            ? "\(account.displayTitle), code \(code)"
+            : "\(account.displayTitle)\(hasLabel ? ", \(account.label)" : "")"
+    }
+
+    private func copyCode() {
+        guard hasCode else { return }
+        UIPasteboard.general.string = code
+        Haptics.copy()
+        toast.show("Code copied")
+        withAnimation(.snappy) { didCopy = true }
+        Task {
+            try? await Task.sleep(for: .seconds(1.2))
+            withAnimation(.snappy) { didCopy = false }
+        }
     }
 }
 
