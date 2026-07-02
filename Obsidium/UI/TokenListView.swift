@@ -24,6 +24,7 @@ struct TokenListView: View {
     @State private var isManualAddPresented = false
     @State private var isAddOptionsPresented = false
     @State private var isSettingsPresented = false
+    @State private var isSearchPresented = false
     @State private var editingAccount: Account?
     @State private var manualDraft = Account(issuer: "", label: "", secret: "")
     @State private var searchText = ""
@@ -69,7 +70,18 @@ struct TokenListView: View {
                     Text("Obsidium")
                         .font(.headline.weight(.semibold))
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        withAnimation(.snappy) {
+                            searchText = ""
+                            isSearchPresented = true
+                        }
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .tint(Theme.accent)
+                    .accessibilityLabel("Search tokens")
+
                     Button {
                         isAddOptionsPresented = true
                     } label: {
@@ -80,11 +92,6 @@ struct TokenListView: View {
                     .accessibilityLabel("Add token")
                 }
             }
-            .searchable(
-                text: $searchText,
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Search tokens"
-            )
             .confirmationDialog("Add Token", isPresented: $isAddOptionsPresented, titleVisibility: .visible) {
                 Button("Scan QR Code") { isScannerPresented = true }
                 Button("Enter Setup Key") { presentManualAdd() }
@@ -142,15 +149,20 @@ struct TokenListView: View {
 
     @ViewBuilder
     private var content: some View {
-        if store.accounts.isEmpty {
+        if isSearchPresented {
+            SearchPanel(
+                query: $searchText,
+                accounts: filteredAccounts,
+                onCancel: closeSearch
+            )
+            .transition(.opacity.combined(with: .move(edge: .top)))
+        } else if store.accounts.isEmpty {
             EmptyStateView { isAddOptionsPresented = true }
-        } else if filteredAccounts.isEmpty {
-            SearchEmptyState(query: searchText)
         } else {
             // One ticking clock drives every card so codes and rings stay in sync.
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 CardStack(
-                    accounts: filteredAccounts,
+                    accounts: store.accounts,
                     now: context.date
                 )
             }
@@ -160,6 +172,13 @@ struct TokenListView: View {
     private func presentManualAdd() {
         manualDraft = Account(issuer: "", label: "", secret: "")
         isManualAddPresented = true
+    }
+
+    private func closeSearch() {
+        withAnimation(.snappy) {
+            isSearchPresented = false
+            searchText = ""
+        }
     }
 
     /// Delete, behind Face ID if the user enabled it.
@@ -280,7 +299,151 @@ private struct EmptyStateView: View {
     }
 }
 
-/// Shown when search is active but no token identity matches.
+/// Dedicated search mode. It deliberately replaces the Wallet deck so no cards
+/// are visible while searching.
+private struct SearchPanel: View {
+    @Binding var query: String
+    let accounts: [Account]
+    let onCancel: () -> Void
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        VStack(spacing: Theme.Spacing.lg) {
+            searchField
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.top, Theme.Spacing.md)
+
+            if accounts.isEmpty {
+                SearchEmptyState(query: query)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    ScrollView {
+                        LazyVStack(spacing: Theme.Spacing.md) {
+                            ForEach(accounts) { account in
+                                SearchResultRow(account: account, now: context.date)
+                            }
+                        }
+                        .padding(.horizontal, Theme.Spacing.lg)
+                        .padding(.bottom, Theme.Spacing.xxl)
+                    }
+                    .scrollIndicators(.hidden)
+                }
+            }
+        }
+        .onAppear { isFocused = true }
+    }
+
+    private var searchField: some View {
+        HStack(spacing: Theme.Spacing.sm) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField("Search tokens", text: $query)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .focused($isFocused)
+                .submitLabel(.search)
+
+            if !query.isEmpty {
+                Button {
+                    query = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("Clear search")
+            }
+
+            Button("Cancel", action: onCancel)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.accent)
+        }
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.vertical, Theme.Spacing.md)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Theme.cardStroke, lineWidth: 1)
+        )
+    }
+}
+
+private struct SearchResultRow: View {
+    let account: Account
+    let now: Date
+
+    @Environment(ToastCenter.self) private var toast
+
+    private var code: String { TOTPGenerator.code(for: account, at: now) ?? "------" }
+    private var hasCode: Bool { code != "------" }
+    private var secondsRemaining: Int { TOTPGenerator.secondsRemaining(period: account.period, at: now) }
+    private var hasLabel: Bool { !account.label.isEmpty && account.displayTitle != account.label }
+
+    private var icon: BrandIcon {
+        account.iconID.flatMap { BrandIcon.find(id: $0) }
+            ?? BrandIcon.autodetect(for: account.issuer)
+            ?? .default
+    }
+
+    var body: some View {
+        Button(action: copyCode) {
+            HStack(spacing: Theme.Spacing.md) {
+                FontAwesomeIconView(icon: icon, size: 20)
+                    .foregroundStyle(icon.tint ?? Theme.accent)
+                    .frame(width: 38, height: 38)
+                    .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(Theme.cardStroke, lineWidth: 1)
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(account.displayTitle)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    if hasLabel {
+                        Text(account.label)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+
+                Spacer(minLength: Theme.Spacing.md)
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(hasCode ? code : "—")
+                        .font(.system(.title3, design: .monospaced).weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text("\(secondsRemaining)s")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(secondsRemaining <= 5 ? Theme.warning : .secondary)
+                }
+            }
+            .padding(Theme.Spacing.md)
+            .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Theme.cardStroke, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(!hasCode)
+        .accessibilityLabel("\(account.displayTitle), \(hasLabel ? account.label : ""), code \(code)")
+        .accessibilityHint("Double-tap to copy")
+    }
+
+    private func copyCode() {
+        guard hasCode else { return }
+        UIPasteboard.general.string = code
+        Haptics.copy()
+        toast.show("Code copied")
+    }
+}
+
 private struct SearchEmptyState: View {
     let query: String
 
@@ -292,7 +455,7 @@ private struct SearchEmptyState: View {
             Text("No Matching Tokens")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(.primary)
-            Text("No token name or account matches “\(query)”.")
+            Text(query.isEmpty ? "No tokens to search yet." : "No token name or account matches “\(query)”.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
