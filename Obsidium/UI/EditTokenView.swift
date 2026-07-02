@@ -15,26 +15,41 @@ struct EditTokenView: View {
     @Environment(\.dismiss) private var dismiss
 
     let account: Account
+    private let title: String
+    private let saveLabel: String
     private let onSave: ((Account) -> Void)?
 
     @State private var issuer: String
     @State private var label: String
     @State private var secret: String
+    @State private var algorithm: OTPAlgorithm
+    @State private var digits: Int
+    @State private var period: Int
     @State private var selectedIconID: String?
     @State private var isShowingIconPicker = false
     @State private var iconSearchQuery = ""
 
-    init(account: Account, onSave: ((Account) -> Void)? = nil) {
+    init(
+        account: Account,
+        title: String = "Edit Token",
+        saveLabel: String = "Save",
+        onSave: ((Account) -> Void)? = nil
+    ) {
         self.account = account
+        self.title = title
+        self.saveLabel = saveLabel
         self.onSave = onSave
         _issuer = State(initialValue: account.issuer)
         _label = State(initialValue: account.label)
         _secret = State(initialValue: account.secret)
+        _algorithm = State(initialValue: account.algorithm)
+        _digits = State(initialValue: account.digits)
+        _period = State(initialValue: account.period)
         _selectedIconID = State(initialValue: account.iconID)
     }
 
     private var normalizedSecret: String {
-        secret.replacingOccurrences(of: " ", with: "").uppercased()
+        secret.filter { !$0.isWhitespace }.uppercased()
     }
 
     private var secretIsValid: Bool {
@@ -44,6 +59,14 @@ struct EditTokenView: View {
 
     private var selectedBrandIcon: BrandIcon {
         selectedIconID.flatMap { BrandIcon.find(id: $0) } ?? .default
+    }
+
+    private var periodOptions: [Int] {
+        Array(Set([30, 60, period])).sorted()
+    }
+
+    private var digitOptions: [Int] {
+        Array(Set([6, 8, digits])).sorted()
     }
 
     private var filteredIcons: [BrandIcon] {
@@ -64,6 +87,7 @@ struct EditTokenView: View {
                         previewPass
                         identityPanel
                         secretPanel
+                        advancedPanel
                         brandPanel
                     }
                     .padding(.horizontal, Theme.Spacing.lg)
@@ -72,14 +96,14 @@ struct EditTokenView: View {
                 }
                 .scrollIndicators(.hidden)
             }
-            .navigationTitle("Edit Token")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
+                    Button(saveLabel) { save() }
                         .disabled(!secretIsValid)
                 }
             }
@@ -208,6 +232,37 @@ struct EditTokenView: View {
         }
     }
 
+    private var advancedPanel: some View {
+        editorPanel(title: "Advanced", subtitle: "Most services use SHA1, 6 digits, every 30 seconds.") {
+            VStack(spacing: Theme.Spacing.md) {
+                pickerRow(title: "Algorithm", systemImage: "function") {
+                    Picker("Algorithm", selection: $algorithm) {
+                        ForEach(OTPAlgorithm.allCases, id: \.self) { algorithm in
+                            Text(algorithm.rawValue).tag(algorithm)
+                        }
+                    }
+                }
+                Divider().overlay(Color.white.opacity(0.08))
+                pickerRow(title: "Digits", systemImage: "number") {
+                    Picker("Digits", selection: $digits) {
+                        ForEach(digitOptions, id: \.self) { value in
+                            Text("\(value)").tag(value)
+                        }
+                    }
+                }
+                Divider().overlay(Color.white.opacity(0.08))
+                pickerRow(title: "Period", systemImage: "timer") {
+                    Picker("Period", selection: $period) {
+                        ForEach(periodOptions, id: \.self) { value in
+                            Text("\(value)s").tag(value)
+                        }
+                    }
+                }
+            }
+            .pickerStyle(.menu)
+        }
+    }
+
     private var brandPanel: some View {
         editorPanel(title: "Brand mark", subtitle: "Used as the card watermark and management icon.") {
             Button {
@@ -276,6 +331,20 @@ struct EditTokenView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
+        }
+    }
+
+    private func pickerRow<Content: View>(title: String, systemImage: String, @ViewBuilder content: () -> Content) -> some View {
+        HStack(spacing: Theme.Spacing.md) {
+            Image(systemName: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 30)
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+            Spacer()
+            content()
+                .labelsHidden()
         }
     }
 
@@ -395,6 +464,9 @@ struct EditTokenView: View {
         updated.issuer = issuer.trimmingCharacters(in: .whitespaces)
         updated.label = label.trimmingCharacters(in: .whitespaces)
         updated.secret = normalizedSecret
+        updated.algorithm = algorithm
+        updated.digits = digits
+        updated.period = period
         updated.iconID = selectedIconID
         if let onSave = onSave {
             onSave(updated)

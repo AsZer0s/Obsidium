@@ -5,10 +5,13 @@ no sync — it does one job: show 2FA codes. Secrets live only in the device
 Keychain.
 
 - **TOTP** generation per RFC 6238 (SHA1/256/512, 6/8 digits, custom period)
-- **Import** accounts by scanning `otpauth://` QR codes
-- **List** of tokens with a live 30s countdown ring; tap a row to copy
+- **Import** accounts by scanning `otpauth://` QR codes or QR images from Photos
+- **Manual add** for setup keys when a service does not show a QR code
+- **Search** tokens by service name or account label
+- **List** of tokens with a live 30s countdown ring; tap a card to copy
 - **Storage** in the iOS Keychain (device-only, never iCloud-synced)
-- **Edit** a token's name, account, or key; **encrypted backup** export & restore
+- **Edit** a token's name, account, key, algorithm, digits, period, or brand mark
+- **Encrypted backup** export & merge-style restore
 - **Face ID** app lock + optional gating of delete & export
 
 ## Requirements
@@ -50,12 +53,15 @@ Obsidium/
 │   └── QRScannerView.swift    # AVFoundation camera scanner
 └── UI/
     ├── Theme.swift            # design tokens: spacing, radii, dark palette
-    ├── TokenListView.swift    # main screen (dark, card list, empty state)
-    ├── TokenCardView.swift    # one token as a "security card" (code = hero)
-    ├── ScannerScreen.swift    # scan sheet + permission handling
+    ├── TokenListView.swift    # main screen (deck, search, add menu, empty states)
+    ├── TokenCardView.swift    # one token as a Wallet-style security card
+    ├── EditTokenView.swift    # edit existing tokens and manually add setup keys
+    ├── ScannerScreen.swift    # camera scanner + Photos QR import
+    ├── SettingsView.swift     # security, management, encrypted backup/restore
     └── Components/
-        └── CountdownRing.swift # demoted ring + chip + ambient bar
+        └── CountdownRing.swift # countdown ring
 ObsidiumTests/                 # Swift Testing unit tests
+TESTING.md                     # real-device regression checklist
 project.yml                    # XcodeGen project spec
 ExportOptions.plist            # for a future *signed* export (see CI notes)
 .github/workflows/ios-build.yml
@@ -96,11 +102,13 @@ set up.)
 - **Unit tests** (`Cmd-U`, or CI): TOTP output is checked against the official
   RFC 6238 Appendix B vectors for SHA1/256/512; Base32 against RFC 4648 vectors;
   the parser against representative `otpauth://` URIs.
-- **End-to-end** (device): tap **+**, scan a real QR code, and compare Obsidium's
-  code against another authenticator (e.g. Google Authenticator / 1Password).
+- **End-to-end** (device): follow `TESTING.md` for camera scan, Photos QR import,
+  manual setup-key entry, search, Face ID lock, Keychain persistence, and backup
+  restore. Compare generated codes against another authenticator (e.g. Google
+  Authenticator / 1Password).
 - **Persistence**: add a token, force-quit, relaunch — it should still be there.
 
 ## Out of scope (by design)
 
 Cloud sync, accounts/login, backend, multi-device sync, analytics, subscriptions,
-HOTP, manual secret entry, export/backup, and Face ID lock (deferred).
+HOTP, push-based approvals, and any server-side recovery.

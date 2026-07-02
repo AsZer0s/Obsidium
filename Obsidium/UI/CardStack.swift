@@ -44,6 +44,12 @@ struct CardStack: View {
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
             .clipped()
             .animation(spring, value: selectedID)
+            .onChange(of: accounts.map(\.id)) { _, ids in
+                if let id = selectedID, !ids.contains(id) {
+                    selectedID = nil
+                    dragOffset = 0
+                }
+            }
         }
     }
 

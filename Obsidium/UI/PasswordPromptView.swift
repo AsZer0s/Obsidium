@@ -60,6 +60,6 @@ struct PasswordPromptView: View {
         if tooShort { return "Use at least 6 characters." }
         return requiresConfirmation
             ? "You'll need this password to restore the backup. It cannot be recovered."
-            : "Enter the password used to create this backup."
+            : "Enter the backup password. Restore merges into your current vault and does not erase existing tokens."
     }
 }

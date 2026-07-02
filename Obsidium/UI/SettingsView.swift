@@ -42,6 +42,7 @@ struct SettingsView: View {
     @State private var exportDocument = BackupDocument(data: Data())
     @State private var isExporting = false
     @State private var isImporting = false
+    @State private var isConfirmingRestore = false
 
     @State private var passwordFlow: PasswordFlow?
     @State private var submittedPassword: String?
@@ -92,6 +93,16 @@ struct SettingsView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(resultMessage ?? "")
+            }
+            .alert("Restore Backup?", isPresented: $isConfirmingRestore) {
+                Button("Cancel", role: .cancel) {
+                    pendingImportData = nil
+                }
+                Button("Continue") {
+                    passwordFlow = .restore
+                }
+            } message: {
+                Text("Obsidium will decrypt this file and merge it into your current vault. Existing tokens are not erased; matching backup tokens are updated and new tokens are added.")
             }
             .onChange(of: appLockEnabled) { _, enabled in
                 // Prompt right away so enabling gives immediate feedback and
@@ -155,12 +166,12 @@ struct SettingsView: View {
             Button {
                 isImporting = true
             } label: {
-                Label("Import / Restore", systemImage: "square.and.arrow.down")
+                Label("Restore Backup", systemImage: "square.and.arrow.down")
             }
         } header: {
             Text("Backup")
         } footer: {
-            Text("Backups are encrypted with a password you choose (PBKDF2 + AES-GCM). Keep the password safe — it can't be recovered.")
+            Text("Backups are encrypted with a password you choose (PBKDF2 + AES-GCM). Restoring merges with your current tokens and does not erase the vault.")
         }
     }
 
@@ -199,7 +210,7 @@ struct SettingsView: View {
             return
         }
         pendingImportData = data
-        passwordFlow = .restore   // ask for the password, then decrypt
+        isConfirmingRestore = true
     }
 
     /// Runs after the password sheet fully dismisses, so presenting the file
@@ -236,7 +247,9 @@ struct SettingsView: View {
         do {
             let plaintext = try BackupCrypto.decrypt(data, password: password)
             if let added = store.merge(from: plaintext) {
-                resultMessage = added == 0 ? "Backup restored. No new tokens." : "Imported \(added) new token(s)."
+                resultMessage = added == 0
+                    ? "Backup restored and merged. No new tokens were added; existing tokens were left in place or updated."
+                    : "Backup restored and merged. Imported \(added) new token(s); existing tokens were left in place."
             } else {
                 resultMessage = "That file isn't a valid Obsidium backup."
             }

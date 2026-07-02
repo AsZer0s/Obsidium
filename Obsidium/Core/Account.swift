@@ -63,10 +63,22 @@ struct Account: Codable, Identifiable, Hashable {
     }
 }
 
+
 extension Account {
     /// A human-friendly title for the row. Falls back to the label when the
     /// issuer is empty (some QR codes omit it).
     var displayTitle: String {
         issuer.isEmpty ? label : issuer
+    }
+
+    /// Case-insensitive token search across the visible identity fields.
+    /// Secrets are intentionally excluded so setup keys never become searchable
+    /// UI text.
+    func matchesSearch(_ query: String) -> Bool {
+        let normalized = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !normalized.isEmpty else { return true }
+        return issuer.lowercased().contains(normalized)
+            || label.lowercased().contains(normalized)
+            || displayTitle.lowercased().contains(normalized)
     }
 }

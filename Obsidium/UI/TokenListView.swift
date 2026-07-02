@@ -3,9 +3,9 @@
 //  Obsidium
 //
 //  The app's only main screen: a dark, Apple Wallet–style stacked deck of
-//  tokens with a live countdown, a designed empty state, Settings, an Edit
-//  sheet, a copy toast, and a + button to scan. Delete is gated behind Face ID
-//  when the user enables it in Settings.
+//  tokens with a live countdown, search, a designed empty state, Settings, an
+//  Edit sheet, a copy toast, and a + button for QR/manual add. Delete is gated
+//  behind Face ID when the user enables it in Settings.
 //
 
 import SwiftUI
@@ -21,10 +21,18 @@ struct TokenListView: View {
     private var requireBiometrics = false
 
     @State private var isScannerPresented = false
+    @State private var isManualAddPresented = false
+    @State private var isAddOptionsPresented = false
     @State private var isSettingsPresented = false
     @State private var editingAccount: Account?
+    @State private var manualDraft = Account(issuer: "", label: "", secret: "")
+    @State private var searchText = ""
     @State private var isLocked = false
     @State private var isAuthenticating = false
+
+    private var filteredAccounts: [Account] {
+        store.accounts.filter { $0.matchesSearch(searchText) }
+    }
 
     init() {
         let appearance = UINavigationBarAppearance()
@@ -63,7 +71,7 @@ struct TokenListView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        isScannerPresented = true
+                        isAddOptionsPresented = true
                     } label: {
                         Image(systemName: "plus")
                             .font(.body.weight(.semibold))
@@ -72,8 +80,25 @@ struct TokenListView: View {
                     .accessibilityLabel("Add token")
                 }
             }
+            .searchable(
+                text: $searchText,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "Search tokens"
+            )
+            .confirmationDialog("Add Token", isPresented: $isAddOptionsPresented, titleVisibility: .visible) {
+                Button("Scan QR Code") { isScannerPresented = true }
+                Button("Enter Setup Key") { presentManualAdd() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Scan a QR code or manually enter the setup key from your service.")
+            }
             .fullScreenCover(isPresented: $isScannerPresented) {
                 ScannerScreen()
+            }
+            .sheet(isPresented: $isManualAddPresented) {
+                EditTokenView(account: manualDraft, title: "Add Token", saveLabel: "Add") {
+                    store.add($0)
+                }
             }
             .sheet(isPresented: $isSettingsPresented) {
                 SettingsView()
@@ -118,16 +143,23 @@ struct TokenListView: View {
     @ViewBuilder
     private var content: some View {
         if store.accounts.isEmpty {
-            EmptyStateView { isScannerPresented = true }
+            EmptyStateView { isAddOptionsPresented = true }
+        } else if filteredAccounts.isEmpty {
+            SearchEmptyState(query: searchText)
         } else {
             // One ticking clock drives every card so codes and rings stay in sync.
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 CardStack(
-                    accounts: store.accounts,
+                    accounts: filteredAccounts,
                     now: context.date
                 )
             }
         }
+    }
+
+    private func presentManualAdd() {
+        manualDraft = Account(issuer: "", label: "", secret: "")
+        isManualAddPresented = true
     }
 
     /// Delete, behind Face ID if the user enabled it.
@@ -226,7 +258,7 @@ private struct EmptyStateView: View {
                 Text("No Tokens Yet")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.primary)
-                Text("Scan a 2FA QR code to add your first secure token.")
+                Text("Scan a 2FA QR code or enter a setup key manually.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -234,7 +266,7 @@ private struct EmptyStateView: View {
             }
 
             Button(action: onScan) {
-                Label("Scan QR Code", systemImage: "qrcode.viewfinder")
+                Label("Add Token", systemImage: "plus")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(.black)
                     .padding(.horizontal, Theme.Spacing.sm)
@@ -243,6 +275,28 @@ private struct EmptyStateView: View {
             .tint(Theme.accent)
             .controlSize(.large)
             .padding(.top, Theme.Spacing.sm)
+        }
+        .padding(Theme.Spacing.xl)
+    }
+}
+
+/// Shown when search is active but no token identity matches.
+private struct SearchEmptyState: View {
+    let query: String
+
+    var body: some View {
+        VStack(spacing: Theme.Spacing.md) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 34, weight: .light))
+                .foregroundStyle(Theme.accent)
+            Text("No Matching Tokens")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.primary)
+            Text("No token name or account matches “\(query)”.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Theme.Spacing.xl)
         }
         .padding(Theme.Spacing.xl)
     }

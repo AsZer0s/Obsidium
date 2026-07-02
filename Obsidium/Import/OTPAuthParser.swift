@@ -47,7 +47,7 @@ enum OTPAuthParser {
         guard let rawSecret = value("secret"), !rawSecret.isEmpty else {
             throw OTPAuthParseError.missingSecret
         }
-        let secret = rawSecret.replacingOccurrences(of: " ", with: "").uppercased()
+        let secret = rawSecret.filter { !$0.isWhitespace }.uppercased()
         guard let decoded = Base32.decode(secret), !decoded.isEmpty else {
             throw OTPAuthParseError.invalidSecret
         }
