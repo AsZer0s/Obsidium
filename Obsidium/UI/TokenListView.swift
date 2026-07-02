@@ -94,15 +94,7 @@ struct TokenListView: View {
                     }
                 }
             }
-            .searchable(
-                text: $searchText,
-                isPresented: $isSearchPresented,
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Search tokens"
-            )
-            .onChange(of: isSearchPresented) { _, presented in
-                if !presented { searchText = "" }
-            }
+            .modifier(SearchActivationModifier(text: $searchText, isPresented: $isSearchPresented))
             .confirmationDialog("Add Token", isPresented: $isAddOptionsPresented, titleVisibility: .visible) {
                 Button("Scan QR Code") { isScannerPresented = true }
                 Button("Enter Setup Key") { presentManualAdd() }
@@ -205,6 +197,31 @@ struct TokenListView: View {
                 withAnimation(.snappy) { isLocked = !success }
                 isAuthenticating = false
             }
+        }
+    }
+}
+
+/// Attaches native search only while search mode is active. Keeping this
+/// modifier off the normal screen prevents iOS from reserving or showing a
+/// search bar until the explicit magnifying-glass button is tapped.
+private struct SearchActivationModifier: ViewModifier {
+    @Binding var text: String
+    @Binding var isPresented: Bool
+
+    func body(content: Content) -> some View {
+        if isPresented {
+            content
+                .searchable(
+                    text: $text,
+                    isPresented: $isPresented,
+                    placement: .navigationBarDrawer(displayMode: .always),
+                    prompt: "Search tokens"
+                )
+                .onChange(of: isPresented) { _, presented in
+                    if !presented { text = "" }
+                }
+        } else {
+            content
         }
     }
 }
